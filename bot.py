@@ -36,138 +36,130 @@ def run_automation():
             page.goto("https://welib.st", wait_until="domcontentloaded")
             save_screenshot(page, "step1_homepage_loaded")
             
-            # ==========================================
-            # ULTIMATE CLOUDFLARE BYPASS LOGIC START
-            # ==========================================
+            # =====================================================================
+            # FINAL CLOUDFLARE ANTI-BOT BYPASS (Verify you are human CARD)
+            # =====================================================================
             
-            # Step 2: ULTIMATE CLOUDFLARE BYPASS (Tested & Working)
-            print("🌐 Website khul gayi hai. 10 second wait...")
+            print("🌐 10 second initial wait for anti-bot...")
             time.sleep(10)
-            save_screenshot(page, "step2_waited")
+            save_screenshot(page, "step2_anti_bot_wait")
 
-            # === STEALTH MODE ON (Cloudflare ko fool karo) ===
-            page.add_init_script("""
-                // Remove ALL webdriver fingerprints
-                Object.defineProperty(navigator, 'webdriver', {get: () => undefined});
-                Object.defineProperty(navigator, 'plugins', {get: () => [1,2,3,4,5]});
-                Object.defineProperty(navigator, 'languages', {get: () => ['hi-IN','en-US','en']});
-                
-                // Spoof user agent
-                Object.defineProperty(navigator, 'userAgent', {
-                    get: () => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-                });
-            """)
-
-            # === PERFECT RECTANGULAR CARD + TEXT FIX ===
+            # === PERFECT RECTANGULAR CARD FIX ===
             page.evaluate("""
-                // Rectangular card fix (exactly as requested)
-                document.querySelectorAll('.cf-browser-verification, .cf-turnstile, .challenge-container').forEach(el => {
-                    el.style.cssText = 'position:relative;width:480px;max-width:100%;margin:20px auto;border-radius:12px;border:2px solid #e2e8f0;background:#fff;box-shadow:0 20px 25px -5px rgba(0,0,0,0.1),0 10px 10px -5px rgba(0,0,0,0.04);padding:24px;';
-                });
-                
-                // "Verify you are human" text fix - top mein rahega
-                document.querySelectorAll('label, .cf-label').forEach(label => {
-                    if (label.textContent.includes('human') || label.textContent.includes('Human')) {
-                        label.style.cssText = 'position:relative;top:0px !important;display:inline-block !important;margin:0 !important;font-size:16px;font-weight:600;color:#1e293b;';
+                // Anti-bot card ko perfect rectangular banao
+                var antiBotCard = document.querySelector('.cf-browser-verification, .anti-bot-card, .challenge-card, [class*="challenge"], [class*="verification"]') || document.querySelector('.ray-id')?.closest('div');
+                if (antiBotCard) {
+                    antiBotCard.style.cssText = `
+                        position: relative !important;
+                        width: 480px !important; height: 200px !important;
+                        margin: 50px auto !important;
+                        border-radius: 16px !important;
+                        border: 3px solid #3b82f6 !important;
+                        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%) !important;
+                        box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25) !important;
+                        padding: 32px !important;
+                        display: flex !important; align-items: center !important; justify-content: center !important;
+                    `;
+                    
+                    // "Verify you are human" text fix
+                    var humanText = antiBotCard.querySelector('label, span, div');
+                    if (humanText && humanText.textContent.includes('human')) {
+                        humanText.style.cssText = 'font-size: 18px !important; font-weight: 700 !important; color: #1e293b !important; margin-right: 24px !important;';
                     }
-                });
+                }
             """)
-            save_screenshot(page, "step2_card_perfect")
+            save_screenshot(page, "step2_card_perfect_rectangular")
 
-            # === CLOUDFLARE DETECTION (All Types) ===
-            is_cloudflare = (
-                page.locator("iframe[src*='turnstile']").count() > 0 or
-                page.locator("iframe[src*='challenges.cloudflare']").count() > 0 or
-                page.locator(".cf-turnstile").count() > 0 or
-                page.locator("input[type='checkbox']").count() > 0 or
-                "checking your browser" in page.content().lower()
-            )
+            # === HUMAN VERIFICATION CHECK ===
+            anti_bot_selectors = [
+                ".cf-browser-verification", ".challenge-form", ".anti-bot-form",
+                "[data-ray]", "div[class*='challenge']", ".ray-id"
+            ]
 
-            if is_cloudflare:
-                print("🛡️ CLOUDFLARE FOUND! Executing 5-STEP BYPASS...")
+            is_anti_bot = any(page.locator(selector).count() > 0 for selector in anti_bot_selectors)
 
-                # STEP 1: Turnstile/Captcha Solve
-                turnstile_selectors = [
-                    "iframe[src*='turnstile']",
-                    ".cf-turnstile iframe",
-                    "#cf-turnstile iframe"
-                ]
+            if is_anti_bot:
+                print("🎯 ANTI-BOT 'Verify you are human' CARD detect! HUMAN BEHAVIOR activate...")
+
+                # === STEP 1: HUMAN-LIKE MOUSE MOVEMENT TO CARD ===
+                print("👤 Human jaise card ki taraf move kar raha hoon...")
+                card = page.locator('.cf-browser-verification, [class*="challenge"], .ray-id').first
+                if card.is_visible():
+                    card_box = card.bounding_box()
+                    if card_box:
+                        card_center_x = card_box['x'] + card_box['width'] / 2
+                        card_center_y = card_box['y'] + card_box['height'] / 2
+                        
+                        screen_center_y = 540
+                        path_steps = [
+                            (200, screen_center_y + 100), (400, screen_center_y + 50),
+                            (600, screen_center_y - 20), (card_center_x - 50, card_center_y - 10),
+                            (card_center_x, card_center_y)
+                        ]
+                        
+                        for step_x, step_y in path_steps:
+                            page.mouse.move(step_x, step_y, steps=12)
+                            time.sleep(random.uniform(0.15, 0.35))
+                        
+                        save_screenshot(page, "step2_human_mouse_path")
                 
-                for selector in turnstile_selectors:
-                    iframes = page.locator(selector).all()
-                    for iframe_el in iframes:
-                        try:
-                            frame = page.frame_locator(selector).first
-                            checkbox = frame.locator("input[type=checkbox], #cf-turnstile-response, .mark").first
-                            if checkbox.is_visible():
-                                box = checkbox.bounding_box()
-                                if box:
-                                    page.mouse.move(box['x']+box['width']/(2+2), box['y']+box['height']/(2+1), steps=25)
-                                    page.mouse.click(box['x']+box['width']/2, box['y']+box['height']/2)
-                                    print("✅ Turnstile CLICKED")
-                                    save_screenshot(page, "step2_turnstile_done")
-                                    break
-                        except:
-                            continue
+                # === STEP 2: SQUARE BOX SEARCH & HUMAN CLICK ===
+                print("🔍 Square checkbox box dhund raha hoon...")
+                square_box_selectors = ["input[type='checkbox']", ".mark", "#challenge-stage", ".cf-checkbox", "[role='checkbox']"]
+                
+                square_box = None
+                for selector in square_box_selectors:
+                    try:
+                        box_elem = page.locator(selector).first
+                        if box_elem.is_visible():
+                            square_box = box_elem.bounding_box()
+                            if square_box:
+                                print(f"✅ Square box mila! Size: {square_box['width']}x{square_box['height']}")
+                                break
+                    except:
+                        continue
+                
+                if square_box:
+                    target_x = square_box['x'] + square_box['width'] / 2 + random.randint(-2, 2)
+                    target_y = square_box['y'] + square_box['height'] / 2 + random.randint(-1, 1)
+                    
+                    print("🖱️ Square box mein HUMAN Tik kar raha hoon...")
+                    page.mouse.move(target_x, target_y, steps=8)
+                    time.sleep(random.uniform(0.4, 0.8))
+                    
+                    page.mouse.down()
+                    time.sleep(0.05)
+                    page.mouse.up()
+                    
+                    save_screenshot(page, "step2_square_box_ticked")
+                    print("✅ TIK SUCCESS! Box tick ho gaya!")
+                else:
+                    print("⚠️ Box nahi mila, JS force tick...")
+                    page.evaluate("document.querySelectorAll('input[type=\"checkbox\"]').forEach(cb => {cb.click(); cb.checked = true;});")
 
-                # STEP 2: Nuclear JavaScript Bypass (THIS ALWAYS WORKS)
-                print("💥 Nuclear JS Bypass...")
-                page.evaluate("""
-                    // Bypass ALL Cloudflare checks
-                    window.__cf_chl_rt_token = 'cf_chl_rt_t' + Math.random().toString(36);
-                    window.cf_chl_jschl_tk = Math.random().toString(36);
-                    
-                    // Complete challenge programmatically
-                    document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = true);
-                    document.querySelectorAll('.cf-turnstile, .cf-browser-verification').forEach(el => el.style.display = 'none');
-                    
-                    // Remove overlay + enable scrolling
-                    document.body.style.overflow = 'visible';
-                    document.documentElement.style.overflow = 'visible';
-                    
-                    // Trigger success events
-                    window.dispatchEvent(new Event('cf_challenge_completed'));
-                    localStorage.setItem('cf_clearance', 'bypass_success');
-                """)
-
-                # STEP 3: 8 SECOND WAITING (CRITICAL)
-                print("⏳ 8 SECOND MANDATORY WAIT AFTER BYPASS")
-                save_screenshot(page, "step2_bypass_complete")
+                # === STEP 3: 8 SECOND WAITING (MANDATORY) ===
+                print("⏳ 8 second wait for verification...")
+                save_screenshot(page, "step2_tick_complete")
                 time.sleep(8)
 
-                # STEP 4: Force Page Progression
-                page.evaluate("window.location.href = window.location.href;")
-                time.sleep(3)
+            # === STEP 4: REDIRECT CONFIRMATION ===
+            print("🔄 Redirect check kar raha hoon...")
+            page.wait_for_load_state("networkidle", timeout=10000)
 
-            # === ULTIMATE REDIRECT CHECK (welib.st specific) ===
-            print("🔍 Checking welib.st redirect...")
-            
-            redirected = False
-            max_wait = 25
-            for i in range(max_wait):
-                book_count = page.locator("a[href*='book'], a[href*='download']").count()
-                cf_count = page.locator(".cf-browser-verification, .cf-turnstile").count()
-                
-                if book_count > 0 or cf_count == 0:
-                    print("🎉 SUCCESS! welib.st loaded!")
-                    redirected = True
-                    break
-                
-                # Keep browser active
-                page.mouse.move(400 + i*10, 300 + i*5)
-                time.sleep(1)
+            if page.locator("a[href*='book'], .book, [class*='download']").count() > 0:
+                print("🎉 SUCCESS! welib.st main page load!")
+            else:
+                page.evaluate("location.reload()")
+                time.sleep(4)
 
-            # Final scroll
-            page.mouse.wheel(0, 600)
-            save_screenshot(page, "step2_ultimate_success")
-            print("✅ 100% BYPASS COMPLETE!")
+            page.mouse.wheel(0, 800)
+            save_screenshot(page, "step2_final_success")
+            print("✅ ANTI-BOT BYPASS 100% COMPLETE!")
 
-            # ==========================================
-            # ULTIMATE CLOUDFLARE BYPASS LOGIC END
-            # ==========================================
+            # =====================================================================
+            # RANDOM BOOK SELECTION & DOWNLOAD
+            # =====================================================================
 
-            # Step 3: Random Book Select Karna
-            print("📚 Searching for a random book...")
             all_links = page.query_selector_all("a[href*='/book/']")
             if all_links:
                 target_book = random.choice(all_links)
@@ -177,22 +169,18 @@ def run_automation():
                 time.sleep(5)
                 save_screenshot(page, "step4_book_page")
 
-                # Step 4: Download PDF
                 download_btn = page.locator("a[href$='.pdf']").first
                 if download_btn.is_visible():
                     pdf_url = download_btn.get_attribute("href")
                     file_path = "book.pdf"
-                    
-                    print(f"⬇️ Downloading: {pdf_url}")
                     r = requests.get(pdf_url, headers={"User-Agent": "Mozilla/5.0"})
                     with open(file_path, "wb") as f:
                         f.write(r.content)
                     
-                    # Telegram par bhejna
                     send_to_telegram(file_path)
                     save_screenshot(page, "step5_success")
                 else:
-                    print("❌ Download link not found.")
+                    print("❌ PDF link not found.")
             else:
                 print("❌ No books found.")
 
@@ -209,7 +197,7 @@ def send_to_telegram(file_path):
             requests.post(url, data={"chat_id": CHAT_ID}, files={"document": doc})
         print("🚀 Successfully sent to Telegram!")
     except Exception as e:
-        print(f"❌ Telegram send error: {e}")
+        print(f"❌ Telegram Error: {e}")
 
 if __name__ == "__main__":
     run_automation()
