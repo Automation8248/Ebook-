@@ -1,27 +1,35 @@
-name: Book Downloader Automation
+name: Welib Automation
 
 on:
+  workflow_dispatch:
   schedule:
-    - cron: '0 10 * * *' # Rozana subah 10 baje run hoga
-  workflow_dispatch: # Manual run karne ke liye
+    - cron: '0 12 * * *'
 
 jobs:
-  build:
+  run-bot:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout Code
         uses: actions/checkout@v3
 
       - name: Set up Python
-        uses: ambassadors/setup-python@v4
+        uses: actions/setup-python@v4
         with:
           python-version: '3.9'
 
-      - name: Install dependencies
-        run: pip install requests beautifulsoup4
+      - name: Install Dependencies
+        run: |
+          pip install playwright requests beautifulsoup4
+          playwright install chromium --with-deps
 
-      - name: Run Automation
+      - name: Run Script
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: python bot.py
+
+      - name: Upload Screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: step-screenshots
+          path: images/
