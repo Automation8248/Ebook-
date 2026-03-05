@@ -22,23 +22,15 @@ def random_delay(min_sec=2, max_sec=5):
     time.sleep(random.uniform(min_sec, max_sec))
 
 def simulate_human_mouse(page):
-    """Mouse ko screen par upar-neeche randomly move karna aur scroll karna"""
-    print("🤖 Simulating human behavior...")
-    # Random scroll
-    page.mouse.wheel(0, random.randint(200, 500))
-    random_delay(1, 2)
-    page.mouse.wheel(0, -random.randint(100, 300))
-    
-    # Random mouse movements
+    """Mouse ko screen par upar-neeche randomly move karna"""
     for _ in range(3):
         x = random.randint(100, 800)
         y = random.randint(100, 600)
-        page.mouse.move(x, y, steps=10) # steps=10 smooth movement ke liye
+        page.mouse.move(x, y, steps=10)
         random_delay(0.5, 1.5)
 
 def run_automation():
     with sync_playwright() as p:
-        # Browser setup with specific arguments to avoid bot detection
         browser = p.chromium.launch(
             headless=True, 
             args=["--disable-blink-features=AutomationControlled"]
@@ -57,40 +49,65 @@ def run_automation():
             random_delay()
 
             # Step 2: Human Behavior & Cloudflare Check
+            print("🤖 Simulating initial human behavior...")
+            page.mouse.wheel(0, random.randint(200, 500))
             simulate_human_mouse(page)
             
             # Check if Cloudflare iframe is present
             if page.locator("iframe").count() > 0:
                 print("🛡️ Cloudflare challenge detected.")
                 iframe = page.frame_locator("iframe").first
-                
-                # Cloudflare ke checkbox ko locate karna
                 checkbox = iframe.locator("input[type='checkbox'], .mark, #challenge-stage")
                 
                 if checkbox.is_visible():
                     print("🎯 Target acquired. Moving mouse to the checkbox...")
-                    # Get box coordinates for smooth hover
                     box = checkbox.bounding_box()
                     if box:
+                        # Smoothly move to checkbox and click
                         page.mouse.move(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2, steps=15)
                         random_delay(1, 2)
                         print("🖱️ Clicking the checkbox...")
                         page.mouse.click(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2)
                         save_screenshot(page, "step2_clicked_captcha")
                 
-                # Redirect hone ka wait karna (max 15 seconds)
-                print("⏳ Waiting for redirection...")
-                page.wait_for_timeout(15000) 
-                save_screenshot(page, "step3_after_redirection_wait")
+                # NAYA LOGIC: Wait until redirection with continuous human behavior
+                print("⏳ Waiting for redirection to complete...")
+                max_retries = 30 # Maximum 30 seconds wait karega
+                redirected = False
+                
+                for _ in range(max_retries):
+                    # Check if book links have appeared (meaning redirect is successful)
+                    if page.locator("a[href*='/book/']").count() > 0:
+                        redirected = True
+                        print("✅ Successfully redirected past Cloudflare!")
+                        break
+                    
+                    # Redirect ka wait karte hue mouse hilana (Human behavior)
+                    x = random.randint(200, 800)
+                    y = random.randint(200, 600)
+                    page.mouse.move(x, y, steps=5)
+                    time.sleep(1)
+                
+                if not redirected:
+                    print("❌ Redirect timeout. Could not bypass Cloudflare.")
+                    save_screenshot(page, "error_timeout_cloudflare")
+                    return
+                
+                save_screenshot(page, "step3_after_redirection")
+
+            # NAYA LOGIC: Redirect hone ke baad niche scroll karna
+            print("📜 Scrolling down the page after redirect...")
+            page.mouse.wheel(0, random.randint(600, 1500)) # Random amount scroll karega
+            simulate_human_mouse(page) # Thoda mouse hilayega
+            random_delay(2, 4)
+            save_screenshot(page, "step4_scrolled_down")
 
             # Step 3: Find Random Book
             print("📚 Searching for a random book...")
-            # Wait for book links to appear
-            page.wait_for_selector("a[href*='/book/']", timeout=10000)
             all_links = page.query_selector_all("a[href*='/book/']")
             
             if not all_links:
-                print("❌ No books found after bypass. Might still be stuck on Cloudflare.")
+                print("❌ No books found.")
                 save_screenshot(page, "error_no_books")
                 return
 
@@ -100,7 +117,7 @@ def run_automation():
             print(f"🔗 Selected Book: {book_url}")
             page.goto(f"https://welib.st{book_url}")
             random_delay(2, 4)
-            save_screenshot(page, "step4_book_page")
+            save_screenshot(page, "step5_book_page")
 
             # Step 4: Download PDF
             download_btn = page.locator("a[href$='.pdf']").first
@@ -115,7 +132,7 @@ def run_automation():
                 
                 print("✅ Book downloaded! Sending to Telegram...")
                 send_to_telegram(file_path)
-                save_screenshot(page, "step5_success")
+                save_screenshot(page, "step6_success")
             else:
                 print("❌ PDF download link not found on the page.")
                 save_screenshot(page, "error_no_download_btn")
