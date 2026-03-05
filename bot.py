@@ -41,166 +41,171 @@ def run_automation():
             page.goto("https://welib.st", wait_until="domcontentloaded")
             save_screenshot(page, "step1_homepage_loaded")
             
+            # ==========================================
+            # USER PROVIDED LOGIC START (STEP 2)
+            # ==========================================
+            
             # Step 2: 10 Second Wait + 100% Cloudflare Bypass (welib.st optimized)
-print("🌐 Website khul gayi hai. 10 second wait kar raha hoon...")
-time.sleep(10)
-save_screenshot(page, "step2_after_10s_wait")
+            print("🌐 Website khul gayi hai. 10 second wait kar raha hoon...")
+            time.sleep(10)
+            save_screenshot(page, "step2_after_10s_wait")
 
-# === RECTANGULAR CARD + TEXT FIX (Priority 1) ===
-page.evaluate("""
-    // Fix rectangular card layout
-    var cfElements = document.querySelectorAll('.cf-browser-verification, .challenge-form, .cf-challenge-form, #challenge-form');
-    cfElements.forEach(el => {
-        el.style.cssText = `
-            position: relative !important;
-            width: 100% !important; max-width: 500px !important;
-            margin: 20px auto !important;
-            border-radius: 12px !important;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.2) !important;
-            background: linear-gradient(145deg, #ffffff, #f8f9fa) !important;
-            border: 1px solid #e0e6ed !important;
-        `;
-    });
-    
-    // Fix "Verify you are human" text position
-    var labels = document.querySelectorAll('label');
-    labels.forEach(label => {
-        if (label.textContent.toLowerCase().includes('human') || 
-            label.textContent.toLowerCase().includes('verify')) {
-            label.style.cssText = `
-                position: relative !important; top: 0 !important;
-                display: inline-block !important; margin: 0 !important;
-                font-weight: 500 !important; color: #1a202c !important;
-            `;
-        }
-    });
-""")
-save_screenshot(page, "step2_card_text_fixed")
+            # === RECTANGULAR CARD + TEXT FIX (Priority 1) ===
+            page.evaluate("""
+                // Fix rectangular card layout
+                var cfElements = document.querySelectorAll('.cf-browser-verification, .challenge-form, .cf-challenge-form, #challenge-form');
+                cfElements.forEach(el => {
+                    el.style.cssText = `
+                        position: relative !important;
+                        width: 100% !important; max-width: 500px !important;
+                        margin: 20px auto !important;
+                        border-radius: 12px !important;
+                        box-shadow: 0 8px 32px rgba(0,0,0,0.2) !important;
+                        background: linear-gradient(145deg, #ffffff, #f8f9fa) !important;
+                        border: 1px solid #e0e6ed !important;
+                    `;
+                });
+                
+                // Fix "Verify you are human" text position
+                var labels = document.querySelectorAll('label');
+                labels.forEach(label => {
+                    if (label.textContent.toLowerCase().includes('human') || 
+                        label.textContent.toLowerCase().includes('verify')) {
+                        label.style.cssText = `
+                            position: relative !important; top: 0 !important;
+                            display: inline-block !important; margin: 0 !important;
+                            font-weight: 500 !important; color: #1a202c !important;
+                        `;
+                    }
+                });
+            """)
+            save_screenshot(page, "step2_card_text_fixed")
 
-# === UNIVERSAL CLOUDFLARE CHECK (Priority 2) ===
-cf_indicators = [
-    page.locator("iframe").count() > 0,
-    page.locator("input[type='checkbox']").count() > 0,
-    page.locator(".cf-browser-verification").count() > 0,
-    "cloudflare" in page.title().lower() or "checking" in page.title().lower(),
-    page.locator("[data-ray]").count() > 0
-]
+            # === UNIVERSAL CLOUDFLARE CHECK (Priority 2) ===
+            cf_indicators = [
+                page.locator("iframe").count() > 0,
+                page.locator("input[type='checkbox']").count() > 0,
+                page.locator(".cf-browser-verification").count() > 0,
+                "cloudflare" in page.title().lower() or "checking" in page.title().lower(),
+                page.locator("[data-ray]").count() > 0
+            ]
 
-if any(cf_indicators):
-    print("🛡️ CLOUDFLARE DETECTED! Full bypass sequence starting...")
-    
-    # Method 1: IFRAME Checkbox (Primary)
-    if page.locator("iframe").count() > 0:
-        print("🔍 IFRAME checkbox hunting...")
-        iframe = page.frame_locator("iframe").first
-        iframe_checkboxes = [
-            iframe.locator("input[type='checkbox']"),
-            iframe.locator(".mark"),
-            iframe.locator("#challenge-stage"),
-            iframe.locator("[role='checkbox']")
-        ]
-        
-        for cb in iframe_checkboxes:
-            if cb.is_visible():
-                box = cb.bounding_box()
-                if box:
-                    print("🎯 IFRAME checkbox found! Clicking...")
-                    page.mouse.move(box["x"] + box["width"]/2 + random.randint(-5,5), 
-                                  box["y"] + box["height"]/2 + random.randint(-3,3), steps=20)
-                    time.sleep(random.uniform(0.8, 1.5))
-                    page.mouse.click(box["x"] + box["width"]/2, box["y"] + box["height"]/2)
-                    save_screenshot(page, "step2_iframe_clicked")
+            if any(cf_indicators):
+                print("🛡️ CLOUDFLARE DETECTED! Full bypass sequence starting...")
+                
+                # Method 1: IFRAME Checkbox (Primary)
+                if page.locator("iframe").count() > 0:
+                    print("🔍 IFRAME checkbox hunting...")
+                    iframe = page.frame_locator("iframe").first
+                    iframe_checkboxes = [
+                        iframe.locator("input[type='checkbox']"),
+                        iframe.locator(".mark"),
+                        iframe.locator("#challenge-stage"),
+                        iframe.locator("[role='checkbox']")
+                    ]
+                    
+                    for cb in iframe_checkboxes:
+                        if cb.is_visible():
+                            box = cb.bounding_box()
+                            if box:
+                                print("🎯 IFRAME checkbox found! Clicking...")
+                                page.mouse.move(box["x"] + box["width"]/2 + random.randint(-5,5), 
+                                              box["y"] + box["height"]/2 + random.randint(-3,3), steps=20)
+                                time.sleep(random.uniform(0.8, 1.5))
+                                page.mouse.click(box["x"] + box["width"]/2, box["y"] + box["height"]/2)
+                                save_screenshot(page, "step2_iframe_clicked")
+                                break
+                
+                # Method 2: Direct Page Checkbox (Fallback 1)
+                page_checkboxes = [
+                    page.locator("input[type='checkbox']"),
+                    page.locator(".cf-browser-verification input[type='checkbox']"),
+                    page.locator("#cf-challenge-running input")
+                ]
+                
+                for cb in page_checkboxes:
+                    if cb.is_visible():
+                        box = cb.bounding_box()
+                        if box:
+                            print("🎯 Direct checkbox found! Clicking...")
+                            page.mouse.move(box["x"] + box["width"]/2, box["y"] + box["height"]/2, steps=15)
+                            time.sleep(1)
+                            page.mouse.click(box["x"] + box["width"]/2, box["y"] + box["height"]/2)
+                            save_screenshot(page, "step2_direct_clicked")
+                            break
+                
+                # Method 3: JavaScript Nuclear Bypass (Fallback 2 - 100% SUCCESS)
+                print("⚡ JS Nuclear Bypass activating...")
+                page.evaluate("""
+                    // Mark all checkboxes as checked
+                    document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                        cb.checked = true;
+                        cb.dispatchEvent(new Event('change', {bubbles: true}));
+                    });
+                    
+                    // Remove challenge overlay
+                    document.querySelectorAll('.cf-browser-verification, .challenge-form, #challenge-form').forEach(el => {
+                        el.remove();
+                    });
+                    
+                    // Simulate challenge completion
+                    window.cf_chl_jschl_tk = 'COMPLETED';
+                    window.cfChallengeComplete = true;
+                    document.body.style.overflow = 'auto';
+                    document.body.classList.remove('cf-browser-verification');
+                    
+                    // welib.st specific fix
+                    if (location.hostname.includes('welib.st')) {
+                        setTimeout(() => location.reload(), 1000);
+                    }
+                """)
+                
+                save_screenshot(page, "step2_js_bypass")
+
+            # === 8 SECOND SCREENSHOT WAIT (Exactly as requested) ===
+            print("📸 Screenshot capture + 8 second mandatory wait...")
+            save_screenshot(page, "step2_screenshot_after_click")
+            time.sleep(8)  # CRITICAL: 8 second fixed wait
+
+            # === SMART REDIRECT DETECTION (welib.st optimized) ===
+            print("⏳ Smart redirect detection (30s max)...")
+            success_indicators = [
+                "a[href*='/book/']", "a[href*='/download']", ".book", ".title", 
+                "[class*='book']", ".content-main", ".books-grid"
+            ]
+
+            redirected = False
+            start_time = time.time()
+            while time.time() - start_time < 30:
+                for selector in success_indicators:
+                    if page.locator(selector).count() > 0:
+                        print(f"✅ REDIRECT SUCCESS! Found: {selector}")
+                        redirected = True
+                        break
+                
+                if redirected:
                     break
-    
-    # Method 2: Direct Page Checkbox (Fallback 1)
-    page_checkboxes = [
-        page.locator("input[type='checkbox']"),
-        page.locator(".cf-browser-verification input[type='checkbox']"),
-        page.locator("#cf-challenge-running input")
-    ]
-    
-    for cb in page_checkboxes:
-        if cb.is_visible():
-            box = cb.bounding_box()
-            if box:
-                print("🎯 Direct checkbox found! Clicking...")
-                page.mouse.move(box["x"] + box["width"]/2, box["y"] + box["height"]/2, steps=15)
-                time.sleep(1)
-                page.mouse.click(box["x"] + box["width"]/2, box["y"] + box["height"]/2)
-                save_screenshot(page, "step2_direct_clicked")
-                break
-    
-    # Method 3: JavaScript Nuclear Bypass (Fallback 2 - 100% SUCCESS)
-    print("⚡ JS Nuclear Bypass activating...")
-    page.evaluate("""
-        // Mark all checkboxes as checked
-        document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-            cb.checked = true;
-            cb.dispatchEvent(new Event('change', {bubbles: true}));
-        });
-        
-        // Remove challenge overlay
-        document.querySelectorAll('.cf-browser-verification, .challenge-form, #challenge-form').forEach(el => {
-            el.remove();
-        });
-        
-        // Simulate challenge completion
-        window.cf_chl_jschl_tk = 'COMPLETED';
-        window.cfChallengeComplete = true;
-        document.body.style.overflow = 'auto';
-        document.body.classList.remove('cf-browser-verification');
-        
-        // welib.st specific fix
-        if (location.hostname.includes('welib.st')) {
-            setTimeout(() => location.reload(), 1000);
-        }
-    """)
-    
-    save_screenshot(page, "step2_js_bypass")
+                    
+                # Human-like activity to avoid detection
+                page.mouse.move(random.randint(300,900), random.randint(200,700), steps=8)
+                page.mouse.wheel(0, random.randint(100,300))
+                time.sleep(1.2)
 
-# === 8 SECOND SCREENSHOT WAIT (Exactly as requested) ===
-print("📸 Screenshot capture + 8 second mandatory wait...")
-save_screenshot(page, "step2_screenshot_after_click")
-time.sleep(8)  # CRITICAL: 8 second fixed wait
+            if not redirected:
+                print("🔄 Force redirect...")
+                page.reload()
+                time.sleep(3)
 
-# === SMART REDIRECT DETECTION (welib.st optimized) ===
-print("⏳ Smart redirect detection (30s max)...")
-success_indicators = [
-    "a[href*='/book/']", "a[href*='/download']", ".book", ".title", 
-    "[class*='book']", ".content-main", ".books-grid"
-]
-
-redirected = False
-start_time = time.time()
-while time.time() - start_time < 30:
-    for selector in success_indicators:
-        if page.locator(selector).count() > 0:
-            print(f"✅ REDIRECT SUCCESS! Found: {selector}")
-            redirected = True
-            break
-    
-    if redirected:
-        break
-        
-    # Human-like activity to avoid detection
-    page.mouse.move(random.randint(300,900), random.randint(200,700), steps=8)
-    page.mouse.wheel(0, random.randint(100,300))
-    time.sleep(1.2)
-
-if not redirected:
-    print("🔄 Force redirect...")
-    page.reload()
-    time.sleep(3)
-
-print("✅ CLOUDFLARE BYPASS COMPLETE! Proceeding...")
-page.mouse.wheel(0, 800)  # Final scroll
-save_screenshot(page, "step2_final_success")
+            print("✅ CLOUDFLARE BYPASS COMPLETE! Proceeding...")
+            page.mouse.wheel(0, 800)  # Final scroll
+            save_screenshot(page, "step2_final_success") 
             
-            # Step 3: Scroll aur Random Book Select Karna
-            print("📜 Scrolling down and searching for a book...")
-            page.mouse.wheel(0, random.randint(600, 1000))
-            save_screenshot(page, "step3_scrolled")
-            
+            # ==========================================
+            # USER PROVIDED LOGIC END (STEP 2)
+            # ==========================================
+
+            # Step 3: Random Book Select Karna
+            print("📚 Searching for a random book...")
             all_links = page.query_selector_all("a[href*='/book/']")
             if all_links:
                 target_book = random.choice(all_links)
