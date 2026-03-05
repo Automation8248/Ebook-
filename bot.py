@@ -4,7 +4,6 @@ import random
 import requests
 from playwright.sync_api import sync_playwright
 
-# Config
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 IMG_FOLDER = "images"
@@ -12,79 +11,129 @@ IMG_FOLDER = "images"
 if not os.path.exists(IMG_FOLDER):
     os.makedirs(IMG_FOLDER)
 
-def save_screenshot(page, name):
-    path = f"{IMG_FOLDER}/{name}_{int(time.time())}.png"
+def save_screenshot(page, step_name):
+    """Har step ka screenshot lene ke liye function"""
+    path = f"{IMG_FOLDER}/{step_name}_{int(time.time())}.png"
     page.screenshot(path=path)
-    print(f"Screenshot saved: {path}")
+    print(f"📸 Screenshot saved: {path}")
+
+def random_delay(min_sec=2, max_sec=5):
+    """Human-like delay create karne ke liye"""
+    time.sleep(random.uniform(min_sec, max_sec))
+
+def simulate_human_mouse(page):
+    """Mouse ko screen par upar-neeche randomly move karna aur scroll karna"""
+    print("🤖 Simulating human behavior...")
+    # Random scroll
+    page.mouse.wheel(0, random.randint(200, 500))
+    random_delay(1, 2)
+    page.mouse.wheel(0, -random.randint(100, 300))
+    
+    # Random mouse movements
+    for _ in range(3):
+        x = random.randint(100, 800)
+        y = random.randint(100, 600)
+        page.mouse.move(x, y, steps=10) # steps=10 smooth movement ke liye
+        random_delay(0.5, 1.5)
 
 def run_automation():
     with sync_playwright() as p:
-        # Browser launch (Headless for GitHub Actions)
-        browser = p.chromium.launch(headless=True)
-        context = browser.new_context(user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36")
+        # Browser setup with specific arguments to avoid bot detection
+        browser = p.chromium.launch(
+            headless=True, 
+            args=["--disable-blink-features=AutomationControlled"]
+        )
+        context = browser.new_context(
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            viewport={'width': 1280, 'height': 720}
+        )
         page = context.new_page()
 
         try:
-            # 1. Website par jana
-            print("Opening website...")
-            page.goto("https://welib.st", wait_until="networkidle")
-            save_screenshot(page, "step1_homepage")
+            # Step 1: Website open karna
+            print("🌐 Opening website...")
+            page.goto("https://welib.st", wait_until="domcontentloaded")
+            save_screenshot(page, "step1_homepage_loaded")
+            random_delay()
 
-            # 2. Cloudflare Checkbox Handling
-            # Note: Playwright automatically wait karta hai, lekin Cloudflare ke liye thoda extra time
-            time.sleep(5) 
-            if "Verify you are human" in page.content():
-                print("Cloudflare detected, attempting to click...")
-                # Try to click the checkbox if visible
-                checkbox = page.frame_locator("iframe").locator("input[type='checkbox']")
+            # Step 2: Human Behavior & Cloudflare Check
+            simulate_human_mouse(page)
+            
+            # Check if Cloudflare iframe is present
+            if page.locator("iframe").count() > 0:
+                print("🛡️ Cloudflare challenge detected.")
+                iframe = page.frame_locator("iframe").first
+                
+                # Cloudflare ke checkbox ko locate karna
+                checkbox = iframe.locator("input[type='checkbox'], .mark, #challenge-stage")
+                
                 if checkbox.is_visible():
-                    checkbox.click()
-                    time.sleep(5)
-                    save_screenshot(page, "step2_after_captcha")
+                    print("🎯 Target acquired. Moving mouse to the checkbox...")
+                    # Get box coordinates for smooth hover
+                    box = checkbox.bounding_box()
+                    if box:
+                        page.mouse.move(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2, steps=15)
+                        random_delay(1, 2)
+                        print("🖱️ Clicking the checkbox...")
+                        page.mouse.click(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2)
+                        save_screenshot(page, "step2_clicked_captcha")
+                
+                # Redirect hone ka wait karna (max 15 seconds)
+                print("⏳ Waiting for redirection...")
+                page.wait_for_timeout(15000) 
+                save_screenshot(page, "step3_after_redirection_wait")
 
-            # 3. Random Book Select Karna
-            links = page.locator("a[href*='/book/']").all_inner_texts()
+            # Step 3: Find Random Book
+            print("📚 Searching for a random book...")
+            # Wait for book links to appear
+            page.wait_for_selector("a[href*='/book/']", timeout=10000)
             all_links = page.query_selector_all("a[href*='/book/']")
-            if all_links:
-                target_book = random.choice(all_links)
-                book_url = target_book.get_attribute("href")
-                page.goto(f"https://welib.st{book_url}")
-                print(f"Book page opened: {book_url}")
-                save_screenshot(page, "step3_book_page")
-            else:
-                print("No books found.")
+            
+            if not all_links:
+                print("❌ No books found after bypass. Might still be stuck on Cloudflare.")
+                save_screenshot(page, "error_no_books")
                 return
 
-            # 4. Download Logic
-            # Yahan hum direct PDF link search karenge
+            target_book = random.choice(all_links)
+            book_url = target_book.get_attribute("href")
+            
+            print(f"🔗 Selected Book: {book_url}")
+            page.goto(f"https://welib.st{book_url}")
+            random_delay(2, 4)
+            save_screenshot(page, "step4_book_page")
+
+            # Step 4: Download PDF
             download_btn = page.locator("a[href$='.pdf']").first
             if download_btn.is_visible():
                 pdf_url = download_btn.get_attribute("href")
-                file_path = "book.pdf"
+                file_path = "downloaded_book.pdf"
                 
-                # Download file
-                response = requests.get(pdf_url)
+                print(f"⬇️ Downloading PDF from: {pdf_url}")
+                response = requests.get(pdf_url, headers={"User-Agent": "Mozilla/5.0"})
                 with open(file_path, "wb") as f:
                     f.write(response.content)
                 
-                print("Book downloaded. Sending to Telegram...")
-                
-                # 5. Telegram Pe Bhejna
+                print("✅ Book downloaded! Sending to Telegram...")
                 send_to_telegram(file_path)
+                save_screenshot(page, "step5_success")
             else:
-                print("Download link not found.")
+                print("❌ PDF download link not found on the page.")
+                save_screenshot(page, "error_no_download_btn")
 
         except Exception as e:
-            print(f"Error occurred: {e}")
-            save_screenshot(page, "error_state")
+            print(f"⚠️ Error occurred: {e}")
+            save_screenshot(page, "error_exception_caught")
         finally:
             browser.close()
 
 def send_to_telegram(file_path):
     url = f"https://api.telegram.org/bot{TOKEN}/sendDocument"
     with open(file_path, "rb") as doc:
-        requests.post(url, data={"chat_id": CHAT_ID}, files={"document": doc})
-    print("Sent successfully!")
+        response = requests.post(url, data={"chat_id": CHAT_ID}, files={"document": doc})
+    if response.status_code == 200:
+        print("🚀 Successfully sent to Telegram!")
+    else:
+        print(f"❌ Failed to send to Telegram. Error: {response.text}")
 
 if __name__ == "__main__":
     run_automation()
