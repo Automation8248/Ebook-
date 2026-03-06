@@ -172,7 +172,7 @@ def run_automation():
     print("📦 pip install seleniumbase requests")
     print("🌐 Set TELEGRAM_BOT_TOKEN & TELEGRAM_CHAT_ID")
     
-    # PERFECT UC DRIVER (VALID PARAMS ONLY)
+    # PERFECT UC DRIVER (VALID PARAMS ONLY - uc_subdomains removed)
     driver = Driver(
         uc=True,
         headless=False,
@@ -180,7 +180,6 @@ def run_automation():
         undetectable=True,
         disable_ws=True,
         block_images=True,
-        uc_subdomains=False,
         no_sandbox=True,
         disable_gpu=True,
         window_size="1920,1080",
