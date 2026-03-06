@@ -24,8 +24,7 @@ def send_telegram_video(video_path, caption=""):
         with open(video_path, "rb") as video:
             files = {"video": video}
             data = {"chat_id": TELEGRAM_CHAT_ID, "caption": caption}
-            # Timeout bada rakha hai kyunki video upload mein time lagta hai
-            response = requests.post(url, files=files, data=data, timeout=60)
+            response = requests.post(url, files=files, data=data, timeout=120)
             
         if response.status_code == 200:
             print("✅ Video successfully sent to Telegram! 🎉")
@@ -64,20 +63,55 @@ def run_automation():
         # 1. Website par jana
         print("🌐 Website open kar raha hoon...")
         driver.get("https://welib.st")
+        time.sleep(2) # Page load hone ke liye thoda time
         
-        # 2. Initial 10 Second Wait
-        print("⏳ 10 second wait kar raha hoon...")
-        time.sleep(10)
+        # 🟢 VISUAL CURSOR INJECTION 🟢
+        # GitHub Actions ki video mein mouse dikhane ke liye ek Red Dot banayenge
+        cursor_js = """
+        let cursor = document.createElement('div');
+        cursor.id = 'automation-cursor';
+        cursor.style.width = '20px';
+        cursor.style.height = '20px';
+        cursor.style.background = 'rgba(255, 0, 0, 0.7)';
+        cursor.style.border = '2px solid black';
+        cursor.style.borderRadius = '50%';
+        cursor.style.position = 'fixed';
+        cursor.style.zIndex = '999999';
+        cursor.style.pointerEvents = 'none';
+        document.body.appendChild(cursor);
+        document.addEventListener('mousemove', function(e) {
+            cursor.style.left = (e.clientX - 10) + 'px';
+            cursor.style.top = (e.clientY - 10) + 'px';
+        });
+        """
+        driver.execute_script(cursor_js)
         
-        # 3. Human Mouse Movement
-        print("👤 Human ki tarah mouse idhar-udhar move kar raha hoon...")
         actions = ActionChains(driver)
-        for _ in range(6):
-            actions.move_by_offset(random.randint(-100, 100), random.randint(-80, 80)).perform()
-            time.sleep(random.uniform(0.3, 0.8))
         
-        # 4. Iframe Checkbox Click
-        print("🎯 Iframe mein checkbox dhund raha hoon...")
+        # 2. ACTIVE 10-SECOND WAIT (Human Mouse Movement)
+        print("⏳ 10 second tak mouse ko screen par idhar-udhar move kar raha hoon...")
+        end_time = time.time() + 10
+        
+        # Mouse ko screen ke center mein lana
+        try:
+            actions.move_to_element(driver.find_element(By.TAG_NAME, "body")).perform()
+        except:
+            pass
+            
+        while time.time() < end_time:
+            # Randomly upar, niche, aage, piche
+            x_offset = random.randint(-300, 300)
+            y_offset = random.randint(-300, 300)
+            try:
+                actions.move_by_offset(x_offset, y_offset).perform()
+            except:
+                # Agar mouse screen ke bahar chala jaye, toh wapas body par le aao
+                actions.move_to_element(driver.find_element(By.TAG_NAME, "body")).perform()
+            
+            time.sleep(random.uniform(0.5, 1.5)) # Human hesitation
+        
+        # 3. Iframe Checkbox Click
+        print("🎯 10 second pure hue! Ab Iframe mein checkbox dhund raha hoon...")
         iframes = driver.find_elements(By.TAG_NAME, "iframe")
         clicked = False
         
@@ -88,8 +122,8 @@ def run_automation():
                 if targets and targets[0].is_displayed():
                     print("✅ Checkbox mil gaya! Mouse le jaa kar click kar raha hoon...")
                     
-                    # Pehle thoda side mein move karega, fir checkbox par click karega
-                    actions.move_to_element_with_offset(targets[0], -30, -15).perform()
+                    # Dheere se checkbox ki taraf badhna aur tick karna
+                    actions.move_to_element_with_offset(targets[0], -20, -10).perform()
                     time.sleep(1)
                     actions.move_to_element(targets[0]).pause(0.5).click().perform()
                     
@@ -102,13 +136,20 @@ def run_automation():
                 continue
         
         if not clicked:
-            print("⚠️ Checkbox nahi mila ya automation ne pehle hi bypass kar diya hai.")
+            print("⚠️ Checkbox nahi mila ya pehle hi verify ho gaya hai.")
 
-        # 5. Wait 10 Seconds for Redirect
-        print("⏳ Click karne ke baad redirect hone ke liye 10 second wait kar raha hoon...")
-        time.sleep(10)
+        # 4. ACTIVE 10-SECOND REDIRECT WAIT
+        print("⏳ Click karne ke baad redirect hone ke liye agle 10 second wait kar raha hoon...")
+        redirect_end_time = time.time() + 10
+        while time.time() < redirect_end_time:
+            try:
+                # Redirect hone tak thoda bahut mouse hilate raho taaki freeze na lage
+                actions.move_by_offset(random.randint(-50, 50), random.randint(-50, 50)).perform()
+            except:
+                pass
+            time.sleep(1)
         
-        print("✅ Automation steps complete!")
+        print("✅ Automation steps complete! Naya interface open ho gaya hoga.")
 
     except Exception as e:
         print(f"❌ Error aaya: {e}")
@@ -119,13 +160,13 @@ def run_automation():
         print("🔒 Browser closed.")
         
         # 🛑 SCREEN RECORDING STOP
-        print("🛑 Screen recording stop kar raha hoon...")
+        print("🛑 Screen recording band kar raha hoon...")
         record_process.terminate()
         record_process.wait()
         
         # 📤 SEND VIDEO TO TELEGRAM
         if os.path.exists(video_filename):
-            send_telegram_video(video_filename, "📹 Automation Screen Recording")
+            send_telegram_video(video_filename, "📹 Automation Live Screen Recording (With Human Mouse)")
         else:
             print("❌ Video file create nahi hui!")
 
