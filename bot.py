@@ -3,6 +3,7 @@ import time
 import random
 import requests
 import subprocess
+from datetime import datetime
 from seleniumbase import Driver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
@@ -13,10 +14,27 @@ from selenium.webdriver.support import expected_conditions as EC
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
-def send_telegram_file(file_path, file_type="document", caption=""):
-    """Telegram par PDF ya Video bhejne ka universal function"""
+def send_telegram_photo(driver, caption=""):
+    """Screenshot save karke Telegram par bhejne ka function"""
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
-        print("⚠️ Telegram Config (Token/Chat ID) missing hai!")
+        return
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    screenshot_path = f"images/{timestamp}_welib.png"
+    os.makedirs("images", exist_ok=True)
+    driver.save_screenshot(screenshot_path)
+    
+    try:
+        with open(screenshot_path, "rb") as photo:
+            files = {"photo": photo}
+            data = {"chat_id": TELEGRAM_CHAT_ID, "caption": caption[:1024]}
+            requests.post(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendPhoto", files=files, data=data)
+    except Exception as e:
+        print(f"❌ Photo Error: {e}")
+
+def send_telegram_file(file_path, file_type="document", caption=""):
+    """Telegram par PDF ya Video bhejne ka function"""
+    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
+        print("⚠️ Telegram Config missing hai!")
         return
 
     print(f"📤 Telegram par {file_type} bhej raha hoon: {file_path}")
@@ -27,20 +45,15 @@ def send_telegram_file(file_path, file_type="document", caption=""):
             files = {file_type: f}
             data = {"chat_id": TELEGRAM_CHAT_ID, "caption": caption}
             response = requests.post(url, files=files, data=data, timeout=120)
-            
         if response.status_code == 200:
-            print(f"✅ {file_type.capitalize()} successfully sent to Telegram! 🎉")
-        else:
-            print(f"❌ {file_type.capitalize()} bhejne mein error: {response.text}")
+            print(f"✅ {file_type.capitalize()} sent successfully!")
     except Exception as e:
         print(f"❌ Telegram Error: {e}")
 
 def active_human_mouse_wait(driver, duration=10):
-    """10 Second tak mouse ko screen par idhar-udhar ghumane ka logic"""
+    """10 Second tak mouse ko screen par random ghumane ka logic"""
     end_time = time.time() + duration
-    
     try:
-        # Pehle mouse ko body ke center mein late hain
         body = driver.find_element(By.TAG_NAME, "body")
         ActionChains(driver).move_to_element(body).perform()
     except:
@@ -50,22 +63,18 @@ def active_human_mouse_wait(driver, duration=10):
         x_offset = random.randint(-250, 250)
         y_offset = random.randint(-250, 250)
         try:
-            # Mouse ko upar, niche, left, right move karna
             ActionChains(driver).move_by_offset(x_offset, y_offset).perform()
         except:
-            # Agar mouse window se bahar jaye, toh reset kar do
             try:
                 ActionChains(driver).move_to_element(driver.find_element(By.TAG_NAME, "body")).perform()
             except:
                 pass
-        
-        # Thoda human hesitation (rukna)
         time.sleep(random.uniform(0.5, 1.5))
 
 def run_automation():
     print("🚀 Automation shuru ho raha hai...")
     
-    # 🎥 SCREEN RECORDING START (FFMPEG)
+    # 🎥 SCREEN RECORDING START
     display = os.environ.get('DISPLAY', ':99')
     video_filename = f"automation_record_{int(time.time())}.mp4"
     print("🎥 Screen recording start...")
@@ -77,10 +86,10 @@ def run_automation():
     ]
     record_process = subprocess.Popen(ffmpeg_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-    # 🕵️ DRIVER SETUP (UC Mode)
+    # 🕵️ DRIVER SETUP (No uc_subdomains)
     driver = Driver(
         uc=True,
-        headless=False, # Xvfb ke liye False hona zaroori hai
+        headless=False,
         disable_csp=True,
         undetectable=True,
         window_size="1920,1080",
@@ -88,36 +97,19 @@ def run_automation():
     )
 
     try:
-        # STEP 1: Website open karna
         print("🌐 Website open kar raha hoon...")
         driver.get("https://welib.st")
         time.sleep(2)
         
-        # 🔴 VISUAL RED CURSOR INJECT KARNA (Video mein mouse dikhane ke liye)
-        cursor_js = """
-        let cursor = document.createElement('div');
-        cursor.id = 'automation-cursor';
-        cursor.style.width = '20px'; cursor.style.height = '20px';
-        cursor.style.background = 'rgba(255, 0, 0, 0.8)';
-        cursor.style.border = '2px solid black'; cursor.style.borderRadius = '50%';
-        cursor.style.position = 'fixed'; cursor.style.zIndex = '999999';
-        cursor.style.pointerEvents = 'none';
-        document.body.appendChild(cursor);
-        document.addEventListener('mousemove', function(e) {
-            cursor.style.left = (e.clientX - 10) + 'px';
-            cursor.style.top = (e.clientY - 10) + 'px';
-        });
-        """
-        driver.execute_script(cursor_js)
-        
-        # STEP 2: 10 SECOND ACTIVE WAIT (Pre-Click)
-        print("⏳ 10 second tak mouse idhar-udhar move kar raha hoon (Anti-Bot Bypass)...")
+        # 🟢 10 SECOND ACTIVE WAIT (Pre-Click)
+        print("⏳ 10 second tak mouse idhar-udhar move kar raha hoon...")
         active_human_mouse_wait(driver, 10)
         
-        # STEP 3: ENHANCED IFRAME CHECKBOX TICK WITH RED DOT HIGHLIGHT + "VERIFY YOU ARE HUMAN" DETECTION
+        # ========================================================
+        # 🔥 STEP 3: ENHANCED IFRAME CHECKBOX TICK + RED DOT HIGHLIGHT
+        # ========================================================
         print("🎯 Iframe mein Cloudflare checkbox dhund raha hoon + RED DOT TRACKING...")
 
-        # RED DOT TRACKER - Har jagah red dot dikhega jahan cursor jaega
         driver.execute_script("""
             let redDot = document.createElement('div');
             redDot.id = 'cursor-tracker';
@@ -141,18 +133,14 @@ def run_automation():
         clicked = False
 
         for iframe in iframes:
-            try:
-                print(f"🔍 Iframe #{len([i for i in iframes if i == iframe])} check kar raha hoon...")
+            try: # <-- Yahan try block shuru hua
+                print(f"🔍 Iframe check kar raha hoon...")
                 driver.switch_to.frame(iframe)
                 
-                # "VERIFY YOU ARE HUMAN" TEXT + CHECKBOX DETECTION
                 verify_elements = driver.find_elements(By.XPATH, "//*[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'verify you are human') or contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'verify human')]")
                 checkboxes = driver.find_elements(By.CSS_SELECTOR, 'input[type="checkbox"], .mark, #challenge-stage input, [role="checkbox"], .cf-turnstile input')
                 
-                print(f"📝 Verify text mila: {len(verify_elements)} | Checkboxes: {len(checkboxes)}")
-                
                 if checkboxes or verify_elements:
-                    # RED DOT se highlight karo checkbox area
                     if checkboxes:
                         driver.execute_script("""
                             let checkbox = arguments[0];
@@ -165,46 +153,33 @@ def run_automation():
                             `;
                             checkbox.parentNode.style.position = 'relative';
                             checkbox.parentNode.appendChild(highlight);
-                            console.log('🟢 CHECKBOX HIGHLIGHTED!');
                         """, checkboxes[0])
-                        print("📸 Checkbox highlighted with RED/GREEN dots (Screenshot skipped due to missing function)")
+                        send_telegram_photo(driver, "🔍 Checkbox highlighted with GREEN dots")
                     
-                    # HUMAN PATH: Screen-left → hesitation → curve → PRECISE CENTER
                     target = checkboxes[0] if checkboxes else verify_elements[0]
-                    
                     print("🖱️ Human path start: Left → Hesitate → Curve → Click...")
                     
                     actions = ActionChains(driver)
-                    
-                    # Phase 1: Screen-left se start (50,450)
                     actions.move_by_offset(50, 450).pause(0.3).perform()
-                    print("✅ Phase 1: Screen-left position")
-                    
-                    # Phase 2: Hesitation point (280,430) - 0.8s pause
                     actions.move_to_element_with_offset(target, 280, 430).pause(0.8).perform()
-                    print("✅ Phase 2: Hesitation - thinking...")
                     time.sleep(0.5)
                     
-                    # Phase 3: Curved path (520,390) - micro movements
                     actions.move_by_offset(120 + random.randint(-10,10), -25).pause(0.22).perform()
                     actions.move_by_offset(80 + random.randint(-5,5), 15).pause(0.15).perform()
-                    print("✅ Phase 3: Curved human path")
                     
-                    # Phase 4: PRECISE CENTER + PRESSURE CLICK (0.15s hold)
                     center_offset_x = random.randint(-8, 8)
                     center_offset_y = random.randint(-5, 5)
                     actions.move_to_element_with_offset(target, center_offset_x, center_offset_y).pause(0.4).perform()
                     
-                    print("🎯 Phase 4: PRESSURE CLICK - 0.15s hold...")
                     actions.click_and_hold(target).pause(random.uniform(0.12, 0.18)).release().perform()
-                    
                     print("✅ CHECKBOX SUCCESSFULLY CLICKED! 🎉")
                     clicked = True
                     
+                    send_telegram_photo(driver, "✅ CHECKBOX CLICKED!")
                     driver.switch_to.default_content()
                     break
-                    
-            except Exception as e:
+
+            except Exception as e: # <-- Yahan except block theek se lagaya gaya hai
                 print(f"⚠️ Iframe error: {e}")
                 driver.switch_to.default_content()
                 continue
@@ -212,48 +187,25 @@ def run_automation():
         driver.switch_to.default_content()
 
         if not clicked:
-            print("⚠️ Checkbox nahi mila ya pehle hi verify ho gaya - Nuclear JS fallback...")
-            
-            # NUCLEAR JS BACKUP
+            print("⚠️ Checkbox nahi mila ya verify ho gaya - Nuclear JS fallback...")
             driver.execute_script("""
-                // Force all checkboxes
                 document.querySelectorAll('input[type="checkbox"], [role="checkbox"]').forEach(cb => {
                     cb.checked = true;
                     cb.click();
                     cb.dispatchEvent(new Event('change', {bubbles: true}));
                 });
-                console.log('💥 NUCLEAR JS DEPLOYED!');
             """)
 
-        # 8s POST-CLICK HUMAN WAIT with RED DOT tracking
         print("⏳ 8s human wait - RED DOT active...")
         for i in range(4):
             driver.execute_script(f"window.scrollBy(0, {random.randint(-30, 30)});")
             time.sleep(random.uniform(1.8, 2.2))
 
-        print("✅ IFRAME CHECKBOX MISSION COMPLETE! RED DOT tracking OFF")
         driver.execute_script("document.getElementById('cursor-tracker')?.remove();")
-    
-    # NUCLEAR JS BACKUP
-    driver.execute_script("""
-        // Force all checkboxes
-        document.querySelectorAll('input[type="checkbox"], [role="checkbox"]').forEach(cb => {
-            cb.checked = true;
-            cb.click();
-            cb.dispatchEvent(new Event('change', {bubbles: true}));
-        });
-        console.log('💥 NUCLEAR JS DEPLOYED!');
-    """)
-
-# 8s POST-CLICK HUMAN WAIT with RED DOT tracking
-print("⏳ 8s human wait - RED DOT active...")
-for i in range(4):
-    driver.execute_script(f"window.scrollBy(0, {random.randint(-30, 30)});")
-    time.sleep(random.uniform(1.8, 2.2))
-
-print("✅ IFRAME CHECKBOX MISSION COMPLETE! RED DOT tracking OFF")
-driver.execute_script("document.getElementById('cursor-tracker')?.remove();")
-        # STEP 4: 10 SECOND ACTIVE WAIT (Post-Click Redirect)
+        
+        # ========================================================
+        
+        # 🟢 10 SECOND ACTIVE WAIT (Post-Click Redirect)
         print("⏳ Redirect hone ke liye agle 10 second wait aur mouse movement...")
         active_human_mouse_wait(driver, 10)
         
@@ -262,12 +214,12 @@ driver.execute_script("document.getElementById('cursor-tracker')?.remove();")
         try:
             WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.CSS_SELECTOR, "a[href*='/book/']")))
         except:
-            pass # Timeout ke baad bhi continue karenge
+            pass 
 
         book_elements = driver.find_elements(By.CSS_SELECTOR, "a[href*='/book/'], .book")
         
         if book_elements:
-            target_book = random.choice(book_elements[:15]) # Top 15 books me se ek uthana
+            target_book = random.choice(book_elements[:15])
             book_url = target_book.get_attribute("href")
             print(f"🔗 Random Book mili: {book_url}")
             
@@ -282,8 +234,6 @@ driver.execute_script("document.getElementById('cursor-tracker')?.remove();")
                 pdf_url = pdf_links[0].get_attribute("href")
                 pdf_file_path = f"welib_book_{int(time.time())}.pdf"
                 
-                print(f"📄 PDF Download ho raha hai: {pdf_url}")
-                # Same user-agent ke sath requests se download karna
                 ua = driver.execute_script("return navigator.userAgent;")
                 r = requests.get(pdf_url, headers={"User-Agent": ua})
                 
@@ -291,7 +241,6 @@ driver.execute_script("document.getElementById('cursor-tracker')?.remove();")
                     f.write(r.content)
                 print("✅ PDF successfully downloaded!")
                 
-                # 📤 SEND PDF TO TELEGRAM
                 send_telegram_file(pdf_file_path, "document", "📚 Random Book PDF (Welib.st)")
             else:
                 print("❌ Is book ka PDF link nahi mila.")
@@ -302,7 +251,6 @@ driver.execute_script("document.getElementById('cursor-tracker')?.remove();")
         print(f"❌ Automation Error: {e}")
     
     finally:
-        # STEP 7: CLEANUP & SEND VIDEO
         print("🧹 Browser band kar raha hoon...")
         driver.quit()
         
@@ -310,9 +258,8 @@ driver.execute_script("document.getElementById('cursor-tracker')?.remove();")
         record_process.terminate()
         record_process.wait()
         
-        # 📤 SEND VIDEO TO TELEGRAM
         if os.path.exists(video_filename):
-            send_telegram_file(video_filename, "video", "📹 Automation Live Screen Recording (Bypass + Download)")
+            send_telegram_file(video_filename, "video", "📹 Automation Live Screen Recording")
         else:
             print("❌ Video file save nahi ho payi!")
 
