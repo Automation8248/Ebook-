@@ -40,7 +40,6 @@ def active_human_mouse_wait(driver, duration=10):
     end_time = time.time() + duration
     
     try:
-        # Pehle mouse ko body ke center mein late hain
         body = driver.find_element(By.TAG_NAME, "body")
         ActionChains(driver).move_to_element(body).perform()
     except:
@@ -50,16 +49,12 @@ def active_human_mouse_wait(driver, duration=10):
         x_offset = random.randint(-250, 250)
         y_offset = random.randint(-250, 250)
         try:
-            # Mouse ko upar, niche, left, right move karna
             ActionChains(driver).move_by_offset(x_offset, y_offset).perform()
         except:
-            # Agar mouse window se bahar jaye, toh reset kar do
             try:
                 ActionChains(driver).move_to_element(driver.find_element(By.TAG_NAME, "body")).perform()
             except:
                 pass
-        
-        # Thoda human hesitation (rukna)
         time.sleep(random.uniform(0.5, 1.5))
 
 def run_automation():
@@ -80,7 +75,7 @@ def run_automation():
     # 🕵️ DRIVER SETUP (UC Mode)
     driver = Driver(
         uc=True,
-        headless=False, # Xvfb ke liye False hona zaroori hai
+        headless=False,
         disable_csp=True,
         undetectable=True,
         window_size="1920,1080",
@@ -93,7 +88,7 @@ def run_automation():
         driver.get("https://welib.st")
         time.sleep(2)
         
-        # 🔴 VISUAL RED CURSOR INJECT KARNA (Video mein mouse dikhane ke liye)
+        # 🔴 VISUAL RED CURSOR INJECT KARNA
         cursor_js = """
         let cursor = document.createElement('div');
         cursor.id = 'automation-cursor';
@@ -114,10 +109,9 @@ def run_automation():
         print("⏳ 10 second tak mouse idhar-udhar move kar raha hoon (Anti-Bot Bypass)...")
         active_human_mouse_wait(driver, 10)
         
-        # STEP 3: ENHANCED IFRAME CHECKBOX TICK WITH RED DOT HIGHLIGHT + "VERIFY YOU ARE HUMAN" DETECTION
+        # STEP 3: ENHANCED IFRAME CHECKBOX TICK + TEXT DETECTION + RED DOT
         print("🎯 Iframe mein Cloudflare checkbox dhund raha hoon + RED DOT TRACKING...")
 
-        # RED DOT TRACKER - Har jagah red dot dikhega jahan cursor jaega
         driver.execute_script("""
             let redDot = document.createElement('div');
             redDot.id = 'cursor-tracker';
@@ -152,7 +146,6 @@ def run_automation():
                 print(f"📝 Verify text mila: {len(verify_elements)} | Checkboxes: {len(checkboxes)}")
                 
                 if checkboxes or verify_elements:
-                    # RED DOT se highlight karo checkbox area
                     if checkboxes:
                         driver.execute_script("""
                             let checkbox = arguments[0];
@@ -168,38 +161,32 @@ def run_automation():
                             console.log('🟢 CHECKBOX HIGHLIGHTED!');
                         """, checkboxes[0])
                     
-                    # HUMAN PATH: Screen-left → hesitation → curve → PRECISE CENTER
-                    target = checkboxes[0] if checkboxes else verify_elements[0]
+                    target_text = verify_elements[0] if verify_elements else checkboxes[0]
+                    target_box = checkboxes[0] if checkboxes else verify_elements[0]
                     
-                    print("🖱️ Human path start: Left → Hesitate → Curve → Click...")
-                    
+                    print("🖱️ Human path start: Text → Box → Click...")
                     actions = ActionChains(driver)
                     
-                    # Phase 1: Screen-left se start (50,450)
+                    # Phase 1: Screen-left se start
                     actions.move_by_offset(50, 450).pause(0.3).perform()
                     print("✅ Phase 1: Screen-left position")
                     
-                    # Phase 2: Hesitation point (280,430) - 0.8s pause
-                    actions.move_to_element_with_offset(target, 280, 430).pause(0.8).perform()
-                    print("✅ Phase 2: Hesitation - thinking...")
+                    # Phase 2: Move to "Verify you are human" text first
+                    actions.move_to_element(target_text).pause(0.8).perform()
+                    print("✅ Phase 2: Cursor moved to Verify text - thinking...")
                     time.sleep(0.5)
                     
-                    # Phase 3: Curved path (520,390) - micro movements
-                    actions.move_by_offset(120 + random.randint(-10,10), -25).pause(0.22).perform()
-                    actions.move_by_offset(80 + random.randint(-5,5), 15).pause(0.15).perform()
-                    print("✅ Phase 3: Curved human path")
+                    # Phase 3: Micro movements towards checkbox
+                    actions.move_by_offset(random.randint(-10,10), random.randint(-5,5)).pause(0.22).perform()
+                    print("✅ Phase 3: Curved path towards box")
                     
-                    # Phase 4: PRECISE CENTER + PRESSURE CLICK (0.15s hold)
-                    center_offset_x = random.randint(-8, 8)
-                    center_offset_y = random.randint(-5, 5)
-                    actions.move_to_element_with_offset(target, center_offset_x, center_offset_y).pause(0.4).perform()
-                    
-                    print("🎯 Phase 4: PRESSURE CLICK - 0.15s hold...")
-                    actions.click_and_hold(target).pause(random.uniform(0.12, 0.18)).release().perform()
+                    # Phase 4: Hover directly on box + PRESSURE CLICK
+                    actions.move_to_element(target_box).pause(0.4).perform()
+                    print("🎯 Phase 4: Hovering over checkbox, PRESSURE CLICK - 0.15s hold...")
+                    actions.click_and_hold(target_box).pause(random.uniform(0.12, 0.18)).release().perform()
                     
                     print("✅ CHECKBOX SUCCESSFULLY CLICKED! 🎉")
                     clicked = True
-                    
                     driver.switch_to.default_content()
                     break
                     
@@ -212,10 +199,7 @@ def run_automation():
 
         if not clicked:
             print("⚠️ Checkbox nahi mila ya pehle hi verify ho gaya - Nuclear JS fallback...")
-            
-            # NUCLEAR JS BACKUP
             driver.execute_script("""
-                // Force all checkboxes
                 document.querySelectorAll('input[type="checkbox"], [role="checkbox"]').forEach(cb => {
                     cb.checked = true;
                     cb.click();
@@ -242,12 +226,12 @@ def run_automation():
         try:
             WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.CSS_SELECTOR, "a[href*='/book/']")))
         except:
-            pass # Timeout ke baad bhi continue karenge
+            pass 
 
         book_elements = driver.find_elements(By.CSS_SELECTOR, "a[href*='/book/'], .book")
         
         if book_elements:
-            target_book = random.choice(book_elements[:15]) # Top 15 books me se ek uthana
+            target_book = random.choice(book_elements[:15])
             book_url = target_book.get_attribute("href")
             print(f"🔗 Random Book mili: {book_url}")
             
@@ -263,7 +247,6 @@ def run_automation():
                 pdf_file_path = f"welib_book_{int(time.time())}.pdf"
                 
                 print(f"📄 PDF Download ho raha hai: {pdf_url}")
-                # Same user-agent ke sath requests se download karna
                 ua = driver.execute_script("return navigator.userAgent;")
                 r = requests.get(pdf_url, headers={"User-Agent": ua})
                 
@@ -271,7 +254,6 @@ def run_automation():
                     f.write(r.content)
                 print("✅ PDF successfully downloaded!")
                 
-                # 📤 SEND PDF TO TELEGRAM
                 send_telegram_file(pdf_file_path, "document", "📚 Random Book PDF (Welib.st)")
             else:
                 print("❌ Is book ka PDF link nahi mila.")
@@ -290,9 +272,8 @@ def run_automation():
         record_process.terminate()
         record_process.wait()
         
-        # 📤 SEND VIDEO TO TELEGRAM
         if os.path.exists(video_filename):
-            send_telegram_file(video_filename, "video", "📹 Automation Live Screen Recording (Bypass + Download)")
+            send_telegram_file(video_filename, "video", "📹 Automation Live Screen Recording (Text + Box Hover)")
         else:
             print("❌ Video file save nahi ho payi!")
 
