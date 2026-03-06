@@ -1,35 +1,45 @@
-name: Welib Automation
+name: Welib Downloader Automation
 
 on:
-  workflow_dispatch:
   schedule:
-    - cron: '0 12 * * *'
+    - cron: '0 10 * * *' # Rozana subah 10 baje (UTC) run hoga
+  workflow_dispatch: # GitHub par "Run workflow" button dabane ke liye
 
 jobs:
   run-bot:
     runs-on: ubuntu-latest
+    
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.10' # SeleniumBase ke liye best version
 
       - name: Install Dependencies
         run: |
-          pip install playwright requests beautifulsoup4
-          playwright install chromium --with-deps
+          python -m pip install --upgrade pip
+          pip install seleniumbase requests
+          # ChromeDriver install karna zaroori hai
+          sbase install chromedriver
 
-      - name: Run Script
+      - name: Install Xvfb (Virtual Display for UC Mode)
+        run: sudo apt-get install xvfb
+
+      - name: Run Automation Script with Xvfb
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        run: python bot.py
+        run: |
+          # Xvfb ek virtual screen banata hai jisse UC Mode Cloudflare ko bypass kar pata hai
+          xvfb-run --auto-servernum --server-args="-screen 0 1280x720x24" python bot.py
 
-      - name: Upload Screenshots
+      - name: Upload Screenshots (Artifacts)
         uses: actions/upload-artifact@v4
+        if: always() # Agar script fail bhi ho jaye, tab bhi screenshots save honge
         with:
-          name: step-screenshots
+          name: bot-screenshots
           path: images/
+          retention-days: 5 # Screenshots 5 din tak GitHub par save rahenge
