@@ -80,9 +80,7 @@ def destroy_cloudflare_7_layers(driver):
                        d.innerText && (d.innerText.toLowerCase().includes('human') || d.innerText.includes('verify'))
                    );
         if (card) {
-            card.style.cssText = 'width: 500px; height: 220px; margin: 40px auto; border-radius: 20px; 
-                                border: 3px solid #3b82f6; background: #fff; box-shadow: 0 30px 60px rgba(0,0,0,0.3); 
-                                padding: 30px; display: flex; align-items: center; justify-content: center;';
+            card.style.cssText = 'width: 500px; height: 220px; margin: 40px auto; border-radius: 20px; border: 3px solid #3b82f6; background: #fff; box-shadow: 0 30px 60px rgba(0,0,0,0.3); padding: 30px; display: flex; align-items: center; justify-content: center;';
         }
     """
     driver.execute_script(card_style_js)
@@ -201,14 +199,14 @@ def run_automation():
     print(f"🕵️ Selected User-Agent: {selected_ua}")
 
     # ULTRA STEALTH SELENIUMBASE DRIVER
+    # Yahan se 'uc_subd=None' remove kar diya gaya hai
     driver = Driver(
         uc=True, 
         agent=selected_ua, 
         headless=False,  # VISIBLE FOR CLOUDFLARE
         disable_csp=True,
         block_images=False,
-        undetectable=True,
-        uc_subd=None
+        undetectable=True
     )
 
     try:
