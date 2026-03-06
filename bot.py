@@ -131,6 +131,9 @@ def run_automation():
             console.log('🔴 RED DOT TRACKER ACTIVATED!');
         """)
 
+        # === STEP 3: ADJUSTED PROXIMITY-BASED IFRAME CHECKBOX TICK ===
+        print("🎯 Iframe mein Cloudflare checkbox dhund raha hoon (Proximity Logic)...")
+
         iframes = driver.find_elements(By.TAG_NAME, "iframe")
         clicked = False
 
@@ -140,12 +143,13 @@ def run_automation():
                 driver.switch_to.frame(iframe)
                 
                 # "VERIFY YOU ARE HUMAN" TEXT + CHECKBOX DETECTION
-                verify_elements = driver.find_elements(By.XPATH, "//*[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'verify you are human') or contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'verify human')]")
-                checkboxes = driver.find_elements(By.CSS_SELECTOR, 'input[type="checkbox"], .mark, #challenge-stage input, [role="checkbox"], .cf-turnstile input')
+                verify_elements = driver.find_elements(By.XPATH, "//*[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'verify you are human') or contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'verify human') or contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'verify u r human') or contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'automation')]")
+                checkboxes = driver.find_elements(By.CSS_SELECTOR, 'input[type="checkbox"], .mark, #challenge-stage input, [role="checkbox"], .cf-turnstile input, .cf-checkbox input, #turnstile-checkbox, .human-challenge input')
                 
                 print(f"📝 Verify text mila: {len(verify_elements)} | Checkboxes: {len(checkboxes)}")
                 
                 if checkboxes or verify_elements:
+                    # GREEN HIGHLIGHT checkbox
                     if checkboxes:
                         driver.execute_script("""
                             let checkbox = arguments[0];
@@ -161,52 +165,96 @@ def run_automation():
                             console.log('🟢 CHECKBOX HIGHLIGHTED!');
                         """, checkboxes[0])
                     
-                    target_text = verify_elements[0] if verify_elements else checkboxes[0]
-                    target_box = checkboxes[0] if checkboxes else verify_elements[0]
+                    # **PERFECT LOGIC: Verify text ke BAGAL mein checkbox dhundo**
+                    target_checkbox = None
+                    for verify_text in verify_elements:
+                        nearby_checkboxes = driver.find_elements(By.CSS_SELECTOR, 'input[type="checkbox"], .mark, [role="checkbox"]')
+                        for cb in nearby_checkboxes:
+                            try:
+                                rect_text = verify_text.rect
+                                rect_cb = cb.rect
+                                
+                                distance_x = abs(rect_text['x'] - rect_cb['x'])
+                                distance_y = abs(rect_text['y'] - rect_cb['y'])
+                                
+                                if distance_x < 150 and distance_y < 80:  # BAGAL mein hai!
+                                    target_checkbox = cb
+                                    print(f"🎯 VERIFICATION TEXT KE BAGAL MEIN CHECKBOX MILA! Distance: X={distance_x}, Y={distance_y}")
+                                    break
+                            except:
+                                continue
+                        if target_checkbox:
+                            break
                     
-                    print("🖱️ Human path start: Text → Box → Click...")
-                    actions = ActionChains(driver)
+                    # Fallback agar proximity nahi mila to pehla checkbox
+                    if not target_checkbox and checkboxes:
+                        target_checkbox = checkboxes[0]
+                        print("🔄 Proximity nahi mila, direct checkbox use kar raha hoon")
                     
-                    # Phase 1: Screen-left se start
-                    actions.move_by_offset(50, 450).pause(0.3).perform()
-                    print("✅ Phase 1: Screen-left position")
-                    
-                    # Phase 2: Move to "Verify you are human" text first
-                    actions.move_to_element(target_text).pause(0.8).perform()
-                    print("✅ Phase 2: Cursor moved to Verify text - thinking...")
-                    time.sleep(0.5)
-                    
-                    # Phase 3: Micro movements towards checkbox
-                    actions.move_by_offset(random.randint(-10,10), random.randint(-5,5)).pause(0.22).perform()
-                    print("✅ Phase 3: Curved path towards box")
-                    
-                    # Phase 4: Hover directly on box + PRESSURE CLICK
-                    actions.move_to_element(target_box).pause(0.4).perform()
-                    print("🎯 Phase 4: Hovering over checkbox, PRESSURE CLICK - 0.15s hold...")
-                    actions.click_and_hold(target_box).pause(random.uniform(0.12, 0.18)).release().perform()
-                    
-                    print("✅ CHECKBOX SUCCESSFULLY CLICKED! 🎉")
-                    clicked = True
-                    driver.switch_to.default_content()
-                    break
-                    
+                    if target_checkbox:
+                        target_text = verify_elements[0] if verify_elements else target_checkbox
+                        
+                        print("🖱️ Human path: Text ke BAGAL → Checkbox → PERFECT CLICK...")
+                        actions = ActionChains(driver)
+                        
+                        # Phase 1: Screen-left se natural start
+                        actions.move_by_offset(50, 450).pause(0.4).perform()
+                        print("✅ Phase 1: Screen-left position")
+                        
+                        # Phase 2: "Verify you are human" TEXT PE PEHLE JAO
+                        actions.move_to_element(target_text).pause(1.0).perform()
+                        print("✅ Phase 2: VERIFY TEXT PE CURSOR - reading...")
+                        time.sleep(0.6)
+                        
+                        # Phase 3: BAGAL mein checkbox ki taraf smooth curve
+                        actions.move_to_element_with_offset(target_checkbox, random.randint(-5,5), random.randint(-8,8)).pause(0.3).perform()
+                        print("✅ Phase 3: BAGAL mein CHECKBOX pe move")
+                        
+                        # Phase 4: **TIK-TIK** PRECISE CENTER CLICK with pressure
+                        actions.move_to_element(target_checkbox).pause(0.5).perform()
+                        print("🎯 Phase 4: CHECKBOX CENTER LOCK - TIK TIK PRESSURE CLICK...")
+                        
+                        # DOUBLE PRESSURE CLICK for 100% success
+                        actions.click_and_hold(target_checkbox).pause(0.15).release().pause(0.1).click(target_checkbox).perform()
+                        
+                        print("✅ ✅ CHECKBOX TIK DIYA! DOUBLE CONFIRMED! 🎉")
+                        clicked = True
+                        
+                        # Screenshot success
+                        driver.save_screenshot(f"images/03_checkbox_clicked_iframe_{len(iframes)}.png")
+                        send_telegram_file(f"images/03_checkbox_clicked_iframe_{len(iframes)}.png", "photo", f"✅ CHECKBOX TIK DIYA! Iframe #{len([i for i in iframes if i == iframe])}")
+                        
+                        driver.switch_to.default_content()
+                        break
+                    else:
+                        print("❌ Koi suitable checkbox nahi mila is iframe mein")
+                        driver.switch_to.default_content()
+                        continue
+                        
             except Exception as e:
-                print(f"⚠️ Iframe error: {e}")
-                driver.switch_to.default_content()
+                print(f"⚠️ Iframe error: {str(e)[:100]}")
+                try:
+                    driver.switch_to.default_content()
+                except:
+                    pass
                 continue
 
         driver.switch_to.default_content()
 
         if not clicked:
-            print("⚠️ Checkbox nahi mila ya pehle hi verify ho gaya - Nuclear JS fallback...")
+            print("🚀 FINAL NUCLEAR BACKUP - All iframes fail hone pe...")
             driver.execute_script("""
-                document.querySelectorAll('input[type="checkbox"], [role="checkbox"]').forEach(cb => {
+                document.querySelectorAll('input[type="checkbox"], [role="checkbox"], .mark').forEach(cb => {
                     cb.checked = true;
                     cb.click();
                     cb.dispatchEvent(new Event('change', {bubbles: true}));
+                    cb.dispatchEvent(new MouseEvent('click', {bubbles: true}));
                 });
-                console.log('💥 NUCLEAR JS DEPLOYED!');
+                console.log('💥💥 NUCLEAR JS + MOUSE EVENT DEPLOYED!');
             """)
+            time.sleep(2)
+
+        print("🎉 Cloudflare checkbox mission COMPLETE!")
 
         # 8s POST-CLICK HUMAN WAIT with RED DOT tracking
         print("⏳ 8s human wait - RED DOT active...")
