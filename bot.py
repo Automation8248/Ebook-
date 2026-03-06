@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-🔥 ULTIMATE WELIB.ST CLOUDFLARE BYPASSER v2026 - FIXED
-✅ 100% Working SeleniumBase + Real Human Clicker + Telegram PDF
+🔥 ULTIMATE WELIB.ST CLOUDFLARE BYPASSER v2026 - FULLY FIXED
+✅ SeleniumBase UC Driver + Human Clicker + Telegram PDF
 """
 
 import os
@@ -86,9 +86,9 @@ def ultimate_human_checkbox_clicker(driver):
     actions = ActionChains(driver)
     
     # HUMAN TRAJECTURE: Screen-left → hesitation → curve → precise center
-    start_x, start_y = 50, 450  # Screen left
-    hesitate_x, hesitate_y = 280, 430  # Hesitation point
-    curve_x, curve_y = 520, 390  # Curve point
+    start_x, start_y = 50, 450
+    hesitate_x, hesitate_y = 280, 430
+    curve_x, curve_y = 520, 390
     center_offset = random.randint(-8, 8)
     
     # Phase 2a: Move from screen-left with natural curve
@@ -147,33 +147,32 @@ def run_automation():
     print("📦 pip install seleniumbase")
     print("🌐 Set TELEGRAM_BOT_TOKEN & TELEGRAM_CHAT_ID")
     
-    # 10x Ultra-Stealth User-Agents (2026 realistic)
-    user_agents = [
-        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
-    ]
-    
-    ua = random.choice(user_agents)
-    print(f"🕵️‍♂️  User-Agent: {ua[:80]}...")
-    print("=" * 70)
-    
-    # FIXED Driver config - UC + MAX STEALTH (no uc_subd)
+    # ✅ FIXED Driver - VALID SeleniumBase UC params ONLY
     driver = Driver(
-        uc=True,  # Undetected Chrome
-        headless=False,
+        uc=True,           # Undetected Chrome (auto UA rotation)
+        headless=False,    # Visible for debugging
         undetectable=True,
         disable_csp=True,
         disable_ws=True,
         block_images=True,
-        user_agent=ua,
-        driver_version="latest",
-        uc_subdomains=False,  # FIXED: Boolean, not string
+        uc_subdomains=False,
         no_sandbox=True,
         disable_gpu=True,
         window_size="1920,1080",
-        locale_code="en_US"
+        locale_code="en_US",
+        # ✅ NO user_agent - UC handles UA automatically
+        # ✅ NO driver_version - uses latest
     )
+    
+    # Set UA via JS after launch (UC compatible)
+    ua = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
+    driver.execute_cdp_cmd('Network.setUserAgentOverride', {
+        "userAgent": ua,
+        "acceptLanguage": "en-US,en;q=0.9"
+    })
+    
+    print(f"🕵️‍♂️  UC Chrome + Stealth UA loaded")
+    print("=" * 70)
     
     try:
         # Navigate to welib.st
@@ -189,12 +188,12 @@ def run_automation():
         print("📚 Detecting books...")
         wait = WebDriverWait(driver, 30)
         
-        book_selectors = 'a[href*="/book/"], .book, a[href*="/books/"], .book-card'
+        book_selectors = 'a[href*="/book/"], .book, a[href*="/books/"], .book-card, [class*="book"]'
         books = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, book_selectors)))
         
         # Random book selection
         all_books = driver.find_elements(By.CSS_SELECTOR, book_selectors)
-        random_book = random.choice(all_books[:10])  # Top 10 books
+        random_book = random.choice(all_books[:10])
         book_url = random_book.get_attribute("href")
         book_title = random_book.text[:100] or "Random Book"
         
@@ -207,7 +206,7 @@ def run_automation():
         # PDF download via requests (stealth)
         session = requests.Session()
         session.headers.update({"User-Agent": ua})
-        pdf_links = driver.find_elements(By.CSS_SELECTOR, 'a[href$=".pdf"]')
+        pdf_links = driver.find_elements(By.CSS_SELECTOR, 'a[href$=".pdf"], [href*=".pdf"]')
         
         if pdf_links:
             pdf_url = pdf_links[0].get_attribute("href")
@@ -216,18 +215,19 @@ def run_automation():
             pdf_response = session.get(pdf_url, stream=True)
             send_telegram_pdf(pdf_response.content, f"{book_title[:50]}.pdf")
         else:
-            print("❌ No PDF found")
+            print("❌ No PDF found - sending page screenshot")
+            send_telegram_photo(driver, "05_no_pdf_final")
         
         # Final human scroll + screenshot
         driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
         time.sleep(3)
-        send_telegram_photo(driver, "05_final_success")
+        send_telegram_photo(driver, "06_final_success")
         
         print("✅ BYPASS COMPLETE - Check Telegram!")
         
     except Exception as e:
         print(f"❌ Error: {e}")
-        send_telegram_photo(driver, f"ERROR: {e}")
+        send_telegram_photo(driver, f"ERROR: {str(e)[:200]}")
     
     finally:
         input("Press Enter to close browser...")
