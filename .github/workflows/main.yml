@@ -1,45 +1,46 @@
-name: Welib Downloader Automation
+name: Welib Automation with Video Record
 
 on:
+  workflow_dispatch: # Manual run ke liye
   schedule:
-    - cron: '0 10 * * *' # Rozana subah 10 baje (UTC) run hoga
-  workflow_dispatch: # GitHub par "Run workflow" button dabane ke liye
+    - cron: '0 10 * * *' # Rozana run karne ke liye (Optional)
 
 jobs:
-  run-bot:
+  run-automation:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Checkout Repository
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Python
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10' # SeleniumBase ke liye best version
+          python-version: '3.10'
 
-      - name: Install Dependencies
+      - name: Install System Dependencies (Xvfb & FFmpeg)
+        run: |
+          sudo apt-get update
+          sudo apt-get install xvfb ffmpeg -y
+
+      - name: Install Python Dependencies
         run: |
           python -m pip install --upgrade pip
           pip install seleniumbase requests
-          # ChromeDriver install karna zaroori hai
           sbase install chromedriver
 
-      - name: Install Xvfb (Virtual Display for UC Mode)
-        run: sudo apt-get install xvfb
-
-      - name: Run Automation Script with Xvfb
+      - name: Run Automation & Record Screen
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
-          # Xvfb ek virtual screen banata hai jisse UC Mode Cloudflare ko bypass kar pata hai
-          xvfb-run --auto-servernum --server-args="-screen 0 1280x720x24" python bot.py
+          # Xvfb ek 1920x1080 ki virtual screen banayega jise FFmpeg record karega
+          xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" python bot.py
 
-      - name: Upload Screenshots (Artifacts)
+      - name: Upload Video Artifact (Backup)
         uses: actions/upload-artifact@v4
-        if: always() # Agar script fail bhi ho jaye, tab bhi screenshots save honge
+        if: always() # Script fail hone par bhi video GitHub par save ho jayegi
         with:
-          name: bot-screenshots
-          path: images/
-          retention-days: 5 # Screenshots 5 din tak GitHub par save rahenge
+          name: automation-video
+          path: "*.mp4"
+          retention-days: 5
