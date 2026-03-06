@@ -189,50 +189,129 @@ def run_automation():
                     # Fallback agar proximity nahi mila to pehla checkbox
                     if not target_checkbox and checkboxes:
                         target_checkbox = checkboxes[0]
-                        print("🔄 Proximity nahi mila, direct checkbox use kar raha hoon")
+# ========================================================
+        # 🔥 FINAL PERFECT VERSION - VISIBLE MOUSE CURSOR + TEXT POSITION CLICK
+        # ========================================================
+        print("🎯 Cloudflare Iframe Bypass - VISIBLE MOUSE CURSOR + TEXT POSITION CLICK")
+
+        # **RED DOT CURSOR VISIBLE TRACKER** - Screen pe dikhega har jagah
+        driver.execute_script("""
+            // RED DOT CURSOR TRACKER - HAR MOVEMENT VISIBLE
+            let redDot = document.createElement('div');
+            redDot.id = 'mouse-tracker';
+            redDot.style.cssText = `
+                position: fixed; z-index: 999999; width: 16px; height: 16px;
+                background: radial-gradient(circle, #ff4444 30%, #ff0000 60%, transparent);
+                border: 3px solid #ffffff; border-radius: 50%; 
+                box-shadow: 0 0 15px #ff0000, inset 0 0 5px rgba(255,255,255,0.3);
+                pointer-events: none; transform: translate(-50%, -50%);
+                animation: pulse 0.8s infinite;
+            `;
+            redDot.innerHTML = '🖱️';
+            document.body.appendChild(redDot);
+            
+            // Custom mouse movement tracker
+            let customMouse = {x: 0, y: 0};
+            document.addEventListener('mousemove', (e) => {
+                customMouse.x = e.pageX;
+                customMouse.y = e.pageY;
+                redDot.style.left = customMouse.x + 'px';
+                redDot.style.top = customMouse.y + 'px';
+            });
+            
+            // CSS Pulse animation
+            let style = document.createElement('style');
+            style.textContent = `@keyframes pulse {0%,100%{opacity:1} 50%{opacity:0.7; transform:scale(1.2)}}`;
+            document.head.appendChild(style);
+            
+            console.log('🔴🔴 RED DOT MOUSE TRACKER ACTIVATED - VISIBLE!');
+        """)
+
+        iframes = driver.find_elements(By.TAG_NAME, "iframe")
+        clicked = False
+
+        for iframe_idx, iframe in enumerate(iframes, 1):
+            try:
+                print(f"🔍 Iframe #{iframe_idx}/{len(iframes)} check kar raha hoon...")
+                driver.switch_to.frame(iframe)
+                time.sleep(0.5)
+                
+                # **ENHANCED TEXT DETECTION** - Multiple variations
+                verify_texts = driver.find_elements(By.XPATH, "//*[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'verify') and (contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'human') or contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'u r') or contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'automation'))]")
+                checkboxes = driver.find_elements(By.CSS_SELECTOR, 'input[type="checkbox"], .mark, [role="checkbox"], .cf-checkbox input, #cf-challenge-checkbox, #turnstile-checkbox')
+                
+                print(f"📝 Verify texts: {len(verify_texts)} | Checkboxes: {len(checkboxes)}")
+                
+                if verify_texts:
+                    print(f"🎯 VERIFY TEXT MILA: '{verify_texts[0].text.strip()[:50]}...'")
                     
-                    if target_checkbox:
-                        target_text = verify_elements[0] if verify_elements else target_checkbox
-                        
-                        print("🖱️ Human path: Text ke BAGAL → Checkbox → PERFECT CLICK...")
-                        actions = ActionChains(driver)
-                        
-                        # Phase 1: Screen-left se natural start
-                        actions.move_by_offset(50, 450).pause(0.4).perform()
-                        print("✅ Phase 1: Screen-left position")
-                        
-                        # Phase 2: "Verify you are human" TEXT PE PEHLE JAO
-                        actions.move_to_element(target_text).pause(1.0).perform()
-                        print("✅ Phase 2: VERIFY TEXT PE CURSOR - reading...")
-                        time.sleep(0.6)
-                        
-                        # Phase 3: BAGAL mein checkbox ki taraf smooth curve
-                        actions.move_to_element_with_offset(target_checkbox, random.randint(-5,5), random.randint(-8,8)).pause(0.3).perform()
-                        print("✅ Phase 3: BAGAL mein CHECKBOX pe move")
-                        
-                        # Phase 4: **TIK-TIK** PRECISE CENTER CLICK with pressure
-                        actions.move_to_element(target_checkbox).pause(0.5).perform()
-                        print("🎯 Phase 4: CHECKBOX CENTER LOCK - TIK TIK PRESSURE CLICK...")
-                        
-                        # DOUBLE PRESSURE CLICK for 100% success
-                        actions.click_and_hold(target_checkbox).pause(0.15).release().pause(0.1).click(target_checkbox).perform()
-                        
-                        print("✅ ✅ CHECKBOX TIK DIYA! DOUBLE CONFIRMED! 🎉")
-                        clicked = True
-                        
-                        # Screenshot success
-                        driver.save_screenshot(f"images/03_checkbox_clicked_iframe_{len(iframes)}.png")
-                        send_telegram_file(f"images/03_checkbox_clicked_iframe_{len(iframes)}.png", "photo", f"✅ CHECKBOX TIK DIYA! Iframe #{len([i for i in iframes if i == iframe])}")
-                        
-                        driver.switch_to.default_content()
-                        break
-                    else:
-                        print("❌ Koi suitable checkbox nahi mila is iframe mein")
-                        driver.switch_to.default_content()
-                        continue
-                        
+                    # **TEXT KE EXACT POSITION PE CLICK**
+                    target_text = verify_texts[0]
+                    text_rect = target_text.rect
+                    
+                    print(f"📍 Text position: X={text_rect['x']}, Y={text_rect['y']}, Width={text_rect['width']}, Height={text_rect['height']}")
+                    
+                    # **GREEN HIGHLIGHT + RED DOT pe TEXT**
+                    driver.execute_script("""
+                        let textEl = arguments[0];
+                        let highlight = document.createElement('div');
+                        highlight.style.cssText = `
+                            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+                            border: 5px solid #00ff88; border-radius: 8px;
+                            box-shadow: 0 0 25px #00ff88; z-index: 99999; pointer-events: none;
+                            background: linear-gradient(45deg, rgba(0,255,136,0.2), transparent);
+                        `;
+                        textEl.parentNode.style.position = 'relative';
+                        textEl.parentNode.appendChild(highlight);
+                        console.log('🟢 TEXT HIGHLIGHTED - CLICK READY!');
+                    """, target_text)
+                    
+                    actions = ActionChains(driver)
+                    
+                    # **NATURAL HUMAN PATH**
+                    print("🖱️ VISIBLE PATH: Left → VERIFY TEXT CENTER → TIK!")
+                    
+                    # Phase 1: Screen left start
+                    actions.move_by_offset(80, 420).pause(0.6).perform()
+                    print("✅ Phase 1: Screen-left - RED DOT visible")
+                    time.sleep(0.4)
+                    
+                    # Phase 2: **VERIFY TEXT KE CENTER PE**
+                    text_center_x = text_rect['x'] + text_rect['width']/2 + random.randint(-15, 15)
+                    text_center_y = text_rect['y'] + text_rect['height']/2 + random.randint(-10, 10)
+                    
+                    actions.move_to_element_with_offset(target_text, text_center_x - text_rect['x'], text_center_y - text_rect['y']).pause(1.2).perform()
+                    print(f"✅ Phase 2: TEXT CENTER PE! ({text_center_x:.0f},{text_center_y:.0f})")
+                    time.sleep(0.8)
+                    
+                    # Phase 3: Micro hesitation
+                    actions.move_by_offset(random.randint(-8,8), random.randint(-5,5)).pause(0.4).perform()
+                    print("✅ Phase 3: Micro hesitation - natural")
+                    
+                    # **PHASE 4: PERFECT TIK-TIK DOUBLE CLICK ON TEXT POSITION**
+                    print("🎯 FINAL TIK-TIK: TEXT POSITION PE DOUBLE CLICK!")
+                    actions.click_and_hold(target_text).pause(0.18).release().pause(0.1).click(target_text).perform()
+                    
+                    print("✅✅✅ TEXT POSITION PE DOUBLE TIK DIYA! 🎉🔥")
+                    clicked = True
+                    
+                    # SUCCESS SCREENSHOT
+                    send_telegram_photo(driver, f"✅✅ TEXT PE TIK DIYA! Iframe #{iframe_idx} - RED DOT visible")
+                    
+                    time.sleep(1.5)
+                    driver.switch_to.default_content()
+                    break
+                    
+                elif checkboxes:
+                    print("📦 Text nahi mila, direct checkbox pe try...")
+                    target_box = checkboxes[0]
+                    actions = ActionChains(driver)
+                    actions.move_to_element(target_box).pause(0.5).click_and_hold(target_box).pause(0.15).release().perform()
+                    
+                driver.switch_to.default_content()
+                
             except Exception as e:
-                print(f"⚠️ Iframe error: {str(e)[:100]}")
+                print(f"⚠️ Iframe #{iframe_idx} error: {str(e)[:80]}")
                 try:
                     driver.switch_to.default_content()
                 except:
@@ -241,20 +320,30 @@ def run_automation():
 
         driver.switch_to.default_content()
 
-        if not clicked:
-            print("🚀 FINAL NUCLEAR BACKUP - All iframes fail hone pe...")
-            driver.execute_script("""
-                document.querySelectorAll('input[type="checkbox"], [role="checkbox"], .mark').forEach(cb => {
-                    cb.checked = true;
-                    cb.click();
-                    cb.dispatchEvent(new Event('change', {bubbles: true}));
-                    cb.dispatchEvent(new MouseEvent('click', {bubbles: true}));
-                });
-                console.log('💥💥 NUCLEAR JS + MOUSE EVENT DEPLOYED!');
-            """)
-            time.sleep(2)
+        # **POST-CLICK HUMAN BEHAVIOR**
+        if clicked:
+            print("⏳ 8s SUCCESS WAIT - Human behavior...")
+            for i in range(8):
+                driver.execute_script(f"window.scrollBy({random.randint(-20,20)}, {random.randint(-15,15)});")
+                time.sleep(random.uniform(0.8, 1.3))
 
-        print("🎉 Cloudflare checkbox mission COMPLETE!")
+        # **CLEANUP RED DOT**
+        driver.execute_script("document.getElementById('mouse-tracker')?.remove();")
+        print("🎉🎉 CLOUDFLARE BYPASS 100% COMPLETE! RED DOT removed")
+
+        if not clicked:
+            print("💥 FINAL NUCLEAR - Emergency bypass")
+            driver.execute_script("""
+                document.querySelectorAll('*').forEach(el => {
+                    if (el.textContent.toLowerCase().includes('verify') && el.textContent.toLowerCase().includes('human')) {
+                        el.click();
+                    }
+                    if (el.tagName === 'INPUT' && el.type === 'checkbox') {
+                        el.checked = true; el.click();
+                    }
+                });
+            """)
+        # ========================================================
 
         # 8s POST-CLICK HUMAN WAIT with RED DOT tracking
         print("⏳ 8s human wait - RED DOT active...")
