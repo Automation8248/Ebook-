@@ -115,106 +115,124 @@ def run_automation():
         active_human_mouse_wait(driver, 10)
         
         # STEP 3: ENHANCED IFRAME CHECKBOX TICK WITH RED DOT HIGHLIGHT + "VERIFY YOU ARE HUMAN" DETECTION
-print("🎯 Iframe mein Cloudflare checkbox dhund raha hoon + RED DOT TRACKING...")
+        print("🎯 Iframe mein Cloudflare checkbox dhund raha hoon + RED DOT TRACKING...")
 
-# RED DOT TRACKER - Har jagah red dot dikhega jahan cursor jaega
-driver.execute_script("""
-    let redDot = document.createElement('div');
-    redDot.id = 'cursor-tracker';
-    redDot.style.cssText = `
-        position: fixed; z-index: 999999; width: 12px; height: 12px; 
-        background: radial-gradient(circle, #ff0000 40%, transparent 50%); 
-        border: 2px solid #ff4444; border-radius: 50%; box-shadow: 0 0 10px #ff0000;
-        pointer-events: none; transform: translate(-50%, -50%);
-    `;
-    document.body.appendChild(redDot);
-    
-    let tracker = redDot;
-    document.addEventListener('mousemove', (e) => {
-        tracker.style.left = e.pageX + 'px';
-        tracker.style.top = e.pageY + 'px';
-    });
-    console.log('🔴 RED DOT TRACKER ACTIVATED!');
-""")
+        # RED DOT TRACKER - Har jagah red dot dikhega jahan cursor jaega
+        driver.execute_script("""
+            let redDot = document.createElement('div');
+            redDot.id = 'cursor-tracker';
+            redDot.style.cssText = `
+                position: fixed; z-index: 999999; width: 12px; height: 12px; 
+                background: radial-gradient(circle, #ff0000 40%, transparent 50%); 
+                border: 2px solid #ff4444; border-radius: 50%; box-shadow: 0 0 10px #ff0000;
+                pointer-events: none; transform: translate(-50%, -50%);
+            `;
+            document.body.appendChild(redDot);
+            
+            let tracker = redDot;
+            document.addEventListener('mousemove', (e) => {
+                tracker.style.left = e.pageX + 'px';
+                tracker.style.top = e.pageY + 'px';
+            });
+            console.log('🔴 RED DOT TRACKER ACTIVATED!');
+        """)
 
-iframes = driver.find_elements(By.TAG_NAME, "iframe")
-clicked = False
+        iframes = driver.find_elements(By.TAG_NAME, "iframe")
+        clicked = False
 
-for iframe in iframes:
-    try:
-        print(f"🔍 Iframe #{len([i for i in iframes if i == iframe])} check kar raha hoon...")
-        driver.switch_to.frame(iframe)
-        
-        # "VERIFY YOU ARE HUMAN" TEXT + CHECKBOX DETECTION
-        verify_elements = driver.find_elements(By.XPATH, "//*[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'verify you are human') or contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'verify human')]")
-        checkboxes = driver.find_elements(By.CSS_SELECTOR, 'input[type="checkbox"], .mark, #challenge-stage input, [role="checkbox"], .cf-turnstile input')
-        
-        print(f"📝 Verify text mila: {len(verify_elements)} | Checkboxes: {len(checkboxes)}")
-        
-        if checkboxes or verify_elements:
-            # RED DOT se highlight karo checkbox area
-            if checkboxes:
-                driver.execute_script("""
-                    let checkbox = arguments[0];
-                    let highlight = document.createElement('div');
-                    highlight.style.cssText = `
-                        position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
-                        border: 4px solid #00ff00; border-radius: 50%; 
-                        box-shadow: 0 0 20px #00ff00; z-index: 99998; pointer-events: none;
-                        background: radial-gradient(circle, rgba(0,255,0,0.1) 0%, transparent 70%);
-                    `;
-                    checkbox.parentNode.style.position = 'relative';
-                    checkbox.parentNode.appendChild(highlight);
-                    console.log('🟢 CHECKBOX HIGHLIGHTED!');
-                """, checkboxes[0])
-                send_telegram_photo(driver, "🔍 Checkbox highlighted with RED/GREEN dots")
-            
-            # HUMAN PATH: Screen-left → hesitation → curve → PRECISE CENTER
-            target = checkboxes[0] if checkboxes else verify_elements[0]
-            
-            print("🖱️ Human path start: Left → Hesitate → Curve → Click...")
-            
-            actions = ActionChains(driver)
-            
-            # Phase 1: Screen-left se start (50,450)
-            actions.move_by_offset(50, 450).pause(0.3).perform()
-            print("✅ Phase 1: Screen-left position")
-            
-            # Phase 2: Hesitation point (280,430) - 0.8s pause
-            actions.move_to_element_with_offset(target, 280, 430).pause(0.8).perform()
-            print("✅ Phase 2: Hesitation - thinking...")
-            time.sleep(0.5)
-            
-            # Phase 3: Curved path (520,390) - micro movements
-            actions.move_by_offset(120 + random.randint(-10,10), -25).pause(0.22).perform()
-            actions.move_by_offset(80 + random.randint(-5,5), 15).pause(0.15).perform()
-            print("✅ Phase 3: Curved human path")
-            
-            # Phase 4: PRECISE CENTER + PRESSURE CLICK (0.15s hold)
-            center_offset_x = random.randint(-8, 8)
-            center_offset_y = random.randint(-5, 5)
-            actions.move_to_element_with_offset(target, center_offset_x, center_offset_y).pause(0.4).perform()
-            
-            print("🎯 Phase 4: PRESSURE CLICK - 0.15s hold...")
-            actions.click_and_hold(target).pause(random.uniform(0.12, 0.18)).release().perform()
-            
-            print("✅ CHECKBOX SUCCESSFULLY CLICKED! 🎉")
-            clicked = True
-            
-            # Screenshot after click
-            send_telegram_photo(driver, "✅ CHECKBOX CLICKED - Red/Green dots visible!")
-            driver.switch_to.default_content()
-            break
-            
-    except Exception as e:
-        print(f"⚠️ Iframe error: {e}")
+        for iframe in iframes:
+            try:
+                print(f"🔍 Iframe #{len([i for i in iframes if i == iframe])} check kar raha hoon...")
+                driver.switch_to.frame(iframe)
+                
+                # "VERIFY YOU ARE HUMAN" TEXT + CHECKBOX DETECTION
+                verify_elements = driver.find_elements(By.XPATH, "//*[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'verify you are human') or contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'verify human')]")
+                checkboxes = driver.find_elements(By.CSS_SELECTOR, 'input[type="checkbox"], .mark, #challenge-stage input, [role="checkbox"], .cf-turnstile input')
+                
+                print(f"📝 Verify text mila: {len(verify_elements)} | Checkboxes: {len(checkboxes)}")
+                
+                if checkboxes or verify_elements:
+                    # RED DOT se highlight karo checkbox area
+                    if checkboxes:
+                        driver.execute_script("""
+                            let checkbox = arguments[0];
+                            let highlight = document.createElement('div');
+                            highlight.style.cssText = `
+                                position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+                                border: 4px solid #00ff00; border-radius: 50%; 
+                                box-shadow: 0 0 20px #00ff00; z-index: 99998; pointer-events: none;
+                                background: radial-gradient(circle, rgba(0,255,0,0.1) 0%, transparent 70%);
+                            `;
+                            checkbox.parentNode.style.position = 'relative';
+                            checkbox.parentNode.appendChild(highlight);
+                            console.log('🟢 CHECKBOX HIGHLIGHTED!');
+                        """, checkboxes[0])
+                        print("📸 Checkbox highlighted with RED/GREEN dots (Screenshot skipped due to missing function)")
+                    
+                    # HUMAN PATH: Screen-left → hesitation → curve → PRECISE CENTER
+                    target = checkboxes[0] if checkboxes else verify_elements[0]
+                    
+                    print("🖱️ Human path start: Left → Hesitate → Curve → Click...")
+                    
+                    actions = ActionChains(driver)
+                    
+                    # Phase 1: Screen-left se start (50,450)
+                    actions.move_by_offset(50, 450).pause(0.3).perform()
+                    print("✅ Phase 1: Screen-left position")
+                    
+                    # Phase 2: Hesitation point (280,430) - 0.8s pause
+                    actions.move_to_element_with_offset(target, 280, 430).pause(0.8).perform()
+                    print("✅ Phase 2: Hesitation - thinking...")
+                    time.sleep(0.5)
+                    
+                    # Phase 3: Curved path (520,390) - micro movements
+                    actions.move_by_offset(120 + random.randint(-10,10), -25).pause(0.22).perform()
+                    actions.move_by_offset(80 + random.randint(-5,5), 15).pause(0.15).perform()
+                    print("✅ Phase 3: Curved human path")
+                    
+                    # Phase 4: PRECISE CENTER + PRESSURE CLICK (0.15s hold)
+                    center_offset_x = random.randint(-8, 8)
+                    center_offset_y = random.randint(-5, 5)
+                    actions.move_to_element_with_offset(target, center_offset_x, center_offset_y).pause(0.4).perform()
+                    
+                    print("🎯 Phase 4: PRESSURE CLICK - 0.15s hold...")
+                    actions.click_and_hold(target).pause(random.uniform(0.12, 0.18)).release().perform()
+                    
+                    print("✅ CHECKBOX SUCCESSFULLY CLICKED! 🎉")
+                    clicked = True
+                    
+                    driver.switch_to.default_content()
+                    break
+                    
+            except Exception as e:
+                print(f"⚠️ Iframe error: {e}")
+                driver.switch_to.default_content()
+                continue
+
         driver.switch_to.default_content()
-        continue
 
-driver.switch_to.default_content()
+        if not clicked:
+            print("⚠️ Checkbox nahi mila ya pehle hi verify ho gaya - Nuclear JS fallback...")
+            
+            # NUCLEAR JS BACKUP
+            driver.execute_script("""
+                // Force all checkboxes
+                document.querySelectorAll('input[type="checkbox"], [role="checkbox"]').forEach(cb => {
+                    cb.checked = true;
+                    cb.click();
+                    cb.dispatchEvent(new Event('change', {bubbles: true}));
+                });
+                console.log('💥 NUCLEAR JS DEPLOYED!');
+            """)
 
-if not clicked:
-    print("⚠️ Checkbox nahi mila ya pehle hi verify ho gaya - Nuclear JS fallback...")
+        # 8s POST-CLICK HUMAN WAIT with RED DOT tracking
+        print("⏳ 8s human wait - RED DOT active...")
+        for i in range(4):
+            driver.execute_script(f"window.scrollBy(0, {random.randint(-30, 30)});")
+            time.sleep(random.uniform(1.8, 2.2))
+
+        print("✅ IFRAME CHECKBOX MISSION COMPLETE! RED DOT tracking OFF")
+        driver.execute_script("document.getElementById('cursor-tracker')?.remove();")
     
     # NUCLEAR JS BACKUP
     driver.execute_script("""
